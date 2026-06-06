@@ -13,9 +13,10 @@ struct ETFDetailView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(etf.name)
                         .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(Color.textPrimary)
                     Text(etf.code)
                         .font(.system(size: 13, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.textSecondary)
                 }
                 Spacer()
                 if isLoading {
@@ -30,18 +31,25 @@ struct ETFDetailView: View {
                     .padding(.horizontal, 20)
             }
 
-            VStack(spacing: 10) {
-                CandleChart(klines: klines, selected: $selected)
-                    .frame(minHeight: 360)
-                VolumeChart(klines: klines)
-                    .frame(height: 120)
-                MACDChart(points: MomentumMath.macd(for: klines))
-                    .frame(height: 120)
+            VStack(spacing: 12) {
+                ChartPanel(title: "日 K 线", subtitle: "最近一年") {
+                    CandleChart(klines: klines, selected: $selected)
+                        .frame(minHeight: 352)
+                }
+                ChartPanel(title: "成交量", subtitle: "红涨绿跌") {
+                    VolumeChart(klines: klines)
+                        .frame(height: 110)
+                }
+                ChartPanel(title: "MACD", subtitle: "DIF / DEA / MACD") {
+                    MACDChart(points: MomentumMath.macd(for: klines))
+                        .frame(height: 118)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
         }
         .background(Color.appBackground)
+        .preferredColorScheme(.dark)
         .task(id: etf.code) {
             await load()
         }
@@ -69,7 +77,7 @@ struct CandleInfoBar: View {
     let kline: KLine
 
     var body: some View {
-        HStack(spacing: 18) {
+        HStack(spacing: 14) {
             Text(kline.date.formatted(date: .numeric, time: .omitted))
             value("开", kline.open)
             value("高", kline.high)
@@ -79,14 +87,50 @@ struct CandleInfoBar: View {
             Text("涨跌 \(kline.pctChange.formatted(.number.precision(.fractionLength(2))))%")
                 .foregroundStyle(kline.pctChange >= 0 ? Color.upRed : Color.downGreen)
         }
-        .font(.system(size: 12, design: .monospaced))
-        .padding(10)
-        .background(Color.panelBackground)
+        .font(.system(size: 12.5, weight: .semibold, design: .monospaced))
+        .foregroundStyle(Color.textPrimary)
+        .lineLimit(1)
+        .minimumScaleFactor(0.82)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.cardBackground)
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.rowBorder, lineWidth: 1)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     private func value(_ label: String, _ value: Double) -> some View {
         Text("\(label) \(value.formatted(.number.precision(.fractionLength(3))))")
+    }
+}
+
+struct ChartPanel<Content: View>: View {
+    let title: String
+    let subtitle: String
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textPrimary)
+                Text(subtitle)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.textSecondary)
+                Spacer()
+            }
+            content
+        }
+        .padding(10)
+        .background(Color.panelBackground)
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.rowBorder, lineWidth: 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -98,7 +142,9 @@ struct CandleChart: View {
         GeometryReader { proxy in
             Canvas { context, size in
                 guard let minLow = klines.map(\.low).min(), let maxHigh = klines.map(\.high).max(), maxHigh > minLow else { return }
-                let width = max(size.width / CGFloat(max(klines.count, 1)), 2)
+                drawGrid(context: context, size: size, minValue: minLow, maxValue: maxHigh)
+                let plotWidth = size.width - 54
+                let width = max(plotWidth / CGFloat(max(klines.count, 1)), 2)
                 for (index, kline) in klines.enumerated() {
                     let x = CGFloat(index) * width + width / 2
                     let highY = y(kline.high, min: minLow, max: maxHigh, height: size.height)
@@ -118,16 +164,34 @@ struct CandleChart: View {
             }
             .gesture(DragGesture(minimumDistance: 0).onChanged { value in
                 guard !klines.isEmpty else { return }
-                let index = min(max(Int(value.location.x / max(proxy.size.width / CGFloat(klines.count), 1)), 0), klines.count - 1)
+                let usableWidth = max(proxy.size.width - 54, 1)
+                let index = min(max(Int(value.location.x / max(usableWidth / CGFloat(klines.count), 1)), 0), klines.count - 1)
                 selected = klines[index]
             })
         }
-        .background(Color.panelBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .background(Color.chartBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
     private func y(_ value: Double, min: Double, max: Double, height: CGFloat) -> CGFloat {
         height - CGFloat((value - min) / (max - min)) * height
+    }
+
+    private func drawGrid(context: GraphicsContext, size: CGSize, minValue: Double, maxValue: Double) {
+        let formatter = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(2))
+        for step in 0...4 {
+            let fraction = CGFloat(step) / 4
+            let y = fraction * size.height
+            var path = Path()
+            path.move(to: CGPoint(x: 0, y: y))
+            path.addLine(to: CGPoint(x: size.width - 48, y: y))
+            context.stroke(path, with: .color(Color.gridLine), lineWidth: 0.7)
+            let value = maxValue - Double(fraction) * (maxValue - minValue)
+            let text = Text(value.formatted(formatter))
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(Color.textSecondary)
+            context.draw(text, at: CGPoint(x: size.width - 24, y: y + 7), anchor: .center)
+        }
     }
 }
 
@@ -136,8 +200,8 @@ struct VolumeChart: View {
 
     var body: some View {
         BarChart(values: klines.map(\.volume), colors: klines.map { $0.close >= $0.open ? Color.upRed : Color.downGreen })
-            .background(Color.panelBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .background(Color.chartBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 }
 
@@ -153,7 +217,7 @@ struct MACDChart: View {
                 }
         }
         .background(Color.panelBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 }
 
@@ -165,6 +229,7 @@ struct BarChart: View {
         GeometryReader { proxy in
             Canvas { context, size in
                 guard let maxValue = values.map(abs).max(), maxValue > 0 else { return }
+                drawHorizontalGuide(context: context, size: size, allPositive: values.allSatisfy { $0 >= 0 })
                 let zero = size.height / 2
                 let allPositive = values.allSatisfy { $0 >= 0 }
                 let base = allPositive ? size.height : zero
@@ -177,6 +242,14 @@ struct BarChart: View {
                 }
             }
         }
+    }
+
+    private func drawHorizontalGuide(context: GraphicsContext, size: CGSize, allPositive: Bool) {
+        let y = allPositive ? size.height : size.height / 2
+        var path = Path()
+        path.move(to: CGPoint(x: 0, y: y))
+        path.addLine(to: CGPoint(x: size.width, y: y))
+        context.stroke(path, with: .color(Color.gridLine), lineWidth: 0.7)
     }
 }
 
@@ -208,6 +281,15 @@ struct Sparkline: View {
     let values: [Double]
 
     var body: some View {
-        LineChart(values: values.suffix(30).map { $0 }, color: values.last ?? 0 >= values.first ?? 0 ? .upRed : .downGreen)
+        let recent = Array(values.suffix(30))
+        let isUp = (recent.last ?? 0) >= (recent.first ?? 0)
+        LineChart(values: recent, color: isUp ? .upRed : .downGreen)
+            .background(Color.chartBackground.opacity(0.35))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
     }
+}
+
+private extension Color {
+    static let chartBackground = Color(red: 0.10, green: 0.11, blue: 0.14)
+    static let gridLine = Color.white.opacity(0.10)
 }
