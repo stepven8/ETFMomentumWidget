@@ -1,0 +1,79 @@
+name: ETFMomentumWidget
+options:
+  bundleIdPrefix: local.etf.momentum
+  deploymentTarget:
+    macOS: "14.0"
+settings:
+  base:
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  ETFMomentumCore:
+    type: framework.static
+    platform: macOS
+    sources:
+      - Sources/ETFMomentumCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: local.etf.momentum.core
+
+  ETFMomentumApp:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/ETFMomentumApp
+    dependencies:
+      - target: ETFMomentumCore
+      - target: ETFMomentumWidgetExtension
+        embed: true
+    info:
+      path: Config/AppInfo.plist
+      properties:
+        CFBundleDisplayName: ETF动量排名
+        CFBundleIdentifier: local.etf.momentum.app
+        CFBundleName: ETFMomentumApp
+        CFBundlePackageType: APPL
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "14.0"
+        NSHighResolutionCapable: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: local.etf.momentum.app
+        ENABLE_HARDENED_RUNTIME: false
+
+  ETFMomentumWidgetExtension:
+    type: app-extension
+    platform: macOS
+    sources:
+      - Sources/ETFMomentumWidgetExtension
+    dependencies:
+      - target: ETFMomentumCore
+    info:
+      path: Config/WidgetInfo.plist
+      properties:
+        CFBundleDisplayName: ETF动量排名小组件
+        CFBundleIdentifier: local.etf.momentum.app.widget
+        CFBundleName: ETFMomentumWidgetExtension
+        CFBundlePackageType: XPC!
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: local.etf.momentum.app.widget
+        SKIP_INSTALL: true
+
+  ETFMomentumCoreTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests/ETFMomentumCoreTests
+    dependencies:
+      - target: ETFMomentumCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: local.etf.momentum.tests

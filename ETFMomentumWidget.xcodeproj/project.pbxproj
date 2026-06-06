@@ -1,0 +1,705 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		2C11B893625DFBFB75DF6960 /* ETFMomentumApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C623568223150D94BC330513 /* ETFMomentumApp.swift */; };
+		2CCCD1E665D02374E49E4506 /* RankingParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46FA7B925A379A1F48D2ED9E /* RankingParityTests.swift */; };
+		33AF1076612B2D227E573FF9 /* Charts.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBFC24949CF858D722F157FD /* Charts.swift */; };
+		4191BB1A201DB9D2B8844608 /* TencentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D279E26F271D101B7F8FE19 /* TencentProvider.swift */; };
+		41DA2B0D68C0AB26FA635053 /* DefaultETFPool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B2CB17E1F82C74A5D4E78B /* DefaultETFPool.swift */; };
+		428DB3F582097E69603824A3 /* DataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8AF4F6CB3208D48DC0AFC5 /* DataProvider.swift */; };
+		470DE8D0C5F99A42EBF14941 /* ETFMomentumWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2E2146485D28753EE02CA657 /* ETFMomentumWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		47EC9B0FB841EE6AFEBC06EF /* ETFMomentumCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAC5AA6B65089E97B679886 /* ETFMomentumCore.framework */; };
+		550021D47DEBBF98AF7C263F /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF2B7A394800265739ACABD /* Store.swift */; };
+		86C81D6013A813794E1A698B /* WidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DAAF9C18C292B53E38A80D9 /* WidgetView.swift */; };
+		8DDB0C0CCB4D380F5C7F2443 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81DFED945E3403CCC17F612D /* ContentView.swift */; };
+		8F66E97E909CE0DE147D8435 /* ETFMomentumCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAC5AA6B65089E97B679886 /* ETFMomentumCore.framework */; };
+		A0A3C7EC5347D21A8B84DB60 /* Math.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AF80E9C67E13B9E84051698 /* Math.swift */; };
+		ADD7AC59EC871CC2876F929E /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BAC7BB2D1DA62F5DD782812 /* Models.swift */; };
+		B083CD7CB63FF708E597D23C /* RankingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A425B62421E5FF6DBE5FD61 /* RankingEngine.swift */; };
+		BC91BB6D08A9C3E69FF97BF1 /* AKShareProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB380FC78F43958890AE53F2 /* AKShareProvider.swift */; };
+		C65FD96BDDD149819116FCBF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD5B571342CC70475D3E1AB /* SettingsView.swift */; };
+		D26DC0D0D445403F3D92DED8 /* ETFMomentumCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAC5AA6B65089E97B679886 /* ETFMomentumCore.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		078D135EBEE9B19BBB4BC52D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D223B9DC07839B974673645F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 966812202F39674278D73DDD;
+			remoteInfo = ETFMomentumCore;
+		};
+		0ED1FE64013295B65F5DBEC8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D223B9DC07839B974673645F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 966812202F39674278D73DDD;
+			remoteInfo = ETFMomentumCore;
+		};
+		39C0B1033DDB8A3132D8AD04 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D223B9DC07839B974673645F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 966812202F39674278D73DDD;
+			remoteInfo = ETFMomentumCore;
+		};
+		58140E9ECBC98A3A33EBE689 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D223B9DC07839B974673645F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E10F95A87F0672B48BFD37E6;
+			remoteInfo = ETFMomentumWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		05B6A17BE58585411B898306 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				470DE8D0C5F99A42EBF14941 /* ETFMomentumWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		01B2CB17E1F82C74A5D4E78B /* DefaultETFPool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultETFPool.swift; sourceTree = "<group>"; };
+		2A425B62421E5FF6DBE5FD61 /* RankingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingEngine.swift; sourceTree = "<group>"; };
+		2E2146485D28753EE02CA657 /* ETFMomentumWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ETFMomentumWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		2E568ABD592721DF34A4D1CD /* ETFMomentumApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ETFMomentumApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3AF80E9C67E13B9E84051698 /* Math.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Math.swift; sourceTree = "<group>"; };
+		3CAC5AA6B65089E97B679886 /* ETFMomentumCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ETFMomentumCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		46FA7B925A379A1F48D2ED9E /* RankingParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingParityTests.swift; sourceTree = "<group>"; };
+		4BAC7BB2D1DA62F5DD782812 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		5C8AF4F6CB3208D48DC0AFC5 /* DataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataProvider.swift; sourceTree = "<group>"; };
+		5D279E26F271D101B7F8FE19 /* TencentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TencentProvider.swift; sourceTree = "<group>"; };
+		7CF2B7A394800265739ACABD /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
+		81DFED945E3403CCC17F612D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		8DAAF9C18C292B53E38A80D9 /* WidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetView.swift; sourceTree = "<group>"; };
+		9DD5B571342CC70475D3E1AB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		BB380FC78F43958890AE53F2 /* AKShareProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AKShareProvider.swift; sourceTree = "<group>"; };
+		C623568223150D94BC330513 /* ETFMomentumApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ETFMomentumApp.swift; sourceTree = "<group>"; };
+		EBFC24949CF858D722F157FD /* Charts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Charts.swift; sourceTree = "<group>"; };
+		F11ECAF4D86872375049E450 /* ETFMomentumCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ETFMomentumCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5341C8B06161E9DB84D23912 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				47EC9B0FB841EE6AFEBC06EF /* ETFMomentumCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A3F3E82945FF5B5A32A7C37B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D26DC0D0D445403F3D92DED8 /* ETFMomentumCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB5DA9D62467F848876303CF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8F66E97E909CE0DE147D8435 /* ETFMomentumCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		044B78B84677CE951CDE34E9 = {
+			isa = PBXGroup;
+			children = (
+				133018377455CC0D6B355C7B /* ETFMomentumApp */,
+				11106F553A36AB4C960636CB /* ETFMomentumCore */,
+				8A00237D8591E782E24437E2 /* ETFMomentumCoreTests */,
+				BB1A6F502519F090E44CF6B6 /* ETFMomentumWidgetExtension */,
+				AC054850BCF3A3F6554012F8 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		11106F553A36AB4C960636CB /* ETFMomentumCore */ = {
+			isa = PBXGroup;
+			children = (
+				BB380FC78F43958890AE53F2 /* AKShareProvider.swift */,
+				5C8AF4F6CB3208D48DC0AFC5 /* DataProvider.swift */,
+				01B2CB17E1F82C74A5D4E78B /* DefaultETFPool.swift */,
+				3AF80E9C67E13B9E84051698 /* Math.swift */,
+				4BAC7BB2D1DA62F5DD782812 /* Models.swift */,
+				2A425B62421E5FF6DBE5FD61 /* RankingEngine.swift */,
+				7CF2B7A394800265739ACABD /* Store.swift */,
+				5D279E26F271D101B7F8FE19 /* TencentProvider.swift */,
+			);
+			name = ETFMomentumCore;
+			path = Sources/ETFMomentumCore;
+			sourceTree = "<group>";
+		};
+		133018377455CC0D6B355C7B /* ETFMomentumApp */ = {
+			isa = PBXGroup;
+			children = (
+				EBFC24949CF858D722F157FD /* Charts.swift */,
+				81DFED945E3403CCC17F612D /* ContentView.swift */,
+				C623568223150D94BC330513 /* ETFMomentumApp.swift */,
+				9DD5B571342CC70475D3E1AB /* SettingsView.swift */,
+			);
+			name = ETFMomentumApp;
+			path = Sources/ETFMomentumApp;
+			sourceTree = "<group>";
+		};
+		8A00237D8591E782E24437E2 /* ETFMomentumCoreTests */ = {
+			isa = PBXGroup;
+			children = (
+				46FA7B925A379A1F48D2ED9E /* RankingParityTests.swift */,
+			);
+			name = ETFMomentumCoreTests;
+			path = Tests/ETFMomentumCoreTests;
+			sourceTree = "<group>";
+		};
+		AC054850BCF3A3F6554012F8 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2E568ABD592721DF34A4D1CD /* ETFMomentumApp.app */,
+				3CAC5AA6B65089E97B679886 /* ETFMomentumCore.framework */,
+				F11ECAF4D86872375049E450 /* ETFMomentumCoreTests.xctest */,
+				2E2146485D28753EE02CA657 /* ETFMomentumWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		BB1A6F502519F090E44CF6B6 /* ETFMomentumWidgetExtension */ = {
+			isa = PBXGroup;
+			children = (
+				8DAAF9C18C292B53E38A80D9 /* WidgetView.swift */,
+			);
+			name = ETFMomentumWidgetExtension;
+			path = Sources/ETFMomentumWidgetExtension;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		079BCC14B8B1A25AE69CEE05 /* ETFMomentumApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 77889414DAA9EE203A82ACB4 /* Build configuration list for PBXNativeTarget "ETFMomentumApp" */;
+			buildPhases = (
+				EA94ACC0242040251C4E40B7 /* Sources */,
+				AB5DA9D62467F848876303CF /* Frameworks */,
+				05B6A17BE58585411B898306 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CD7C17BAEF60D62517BA2B2D /* PBXTargetDependency */,
+				664AB1FAB2479EC0149FF64D /* PBXTargetDependency */,
+			);
+			name = ETFMomentumApp;
+			packageProductDependencies = (
+			);
+			productName = ETFMomentumApp;
+			productReference = 2E568ABD592721DF34A4D1CD /* ETFMomentumApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		966812202F39674278D73DDD /* ETFMomentumCore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3275A8FCEF97A0A6174961EF /* Build configuration list for PBXNativeTarget "ETFMomentumCore" */;
+			buildPhases = (
+				EB5D0ABF4942789E9AD5607A /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ETFMomentumCore;
+			packageProductDependencies = (
+			);
+			productName = ETFMomentumCore;
+			productReference = 3CAC5AA6B65089E97B679886 /* ETFMomentumCore.framework */;
+			productType = "com.apple.product-type.framework.static";
+		};
+		D0FB18798D942EFC874410FF /* ETFMomentumCoreTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4ACEC90923E3DDB442D2583E /* Build configuration list for PBXNativeTarget "ETFMomentumCoreTests" */;
+			buildPhases = (
+				F8044DC1093CDB096CCA636B /* Sources */,
+				A3F3E82945FF5B5A32A7C37B /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3243FCE4EECB9F46F920FF06 /* PBXTargetDependency */,
+			);
+			name = ETFMomentumCoreTests;
+			packageProductDependencies = (
+			);
+			productName = ETFMomentumCoreTests;
+			productReference = F11ECAF4D86872375049E450 /* ETFMomentumCoreTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E10F95A87F0672B48BFD37E6 /* ETFMomentumWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B7200C93EBD58A9E6F9B35CA /* Build configuration list for PBXNativeTarget "ETFMomentumWidgetExtension" */;
+			buildPhases = (
+				A6F4594B3FE96432533B5125 /* Sources */,
+				5341C8B06161E9DB84D23912 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				77BE23478A5B0015A6FC25E2 /* PBXTargetDependency */,
+			);
+			name = ETFMomentumWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = ETFMomentumWidgetExtension;
+			productReference = 2E2146485D28753EE02CA657 /* ETFMomentumWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D223B9DC07839B974673645F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					079BCC14B8B1A25AE69CEE05 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					966812202F39674278D73DDD = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					D0FB18798D942EFC874410FF = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					E10F95A87F0672B48BFD37E6 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = C873308AA32E799B5E89A3B8 /* Build configuration list for PBXProject "ETFMomentumWidget" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 044B78B84677CE951CDE34E9;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = AC054850BCF3A3F6554012F8 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				079BCC14B8B1A25AE69CEE05 /* ETFMomentumApp */,
+				966812202F39674278D73DDD /* ETFMomentumCore */,
+				D0FB18798D942EFC874410FF /* ETFMomentumCoreTests */,
+				E10F95A87F0672B48BFD37E6 /* ETFMomentumWidgetExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A6F4594B3FE96432533B5125 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				86C81D6013A813794E1A698B /* WidgetView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA94ACC0242040251C4E40B7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				33AF1076612B2D227E573FF9 /* Charts.swift in Sources */,
+				8DDB0C0CCB4D380F5C7F2443 /* ContentView.swift in Sources */,
+				2C11B893625DFBFB75DF6960 /* ETFMomentumApp.swift in Sources */,
+				C65FD96BDDD149819116FCBF /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EB5D0ABF4942789E9AD5607A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BC91BB6D08A9C3E69FF97BF1 /* AKShareProvider.swift in Sources */,
+				428DB3F582097E69603824A3 /* DataProvider.swift in Sources */,
+				41DA2B0D68C0AB26FA635053 /* DefaultETFPool.swift in Sources */,
+				A0A3C7EC5347D21A8B84DB60 /* Math.swift in Sources */,
+				ADD7AC59EC871CC2876F929E /* Models.swift in Sources */,
+				B083CD7CB63FF708E597D23C /* RankingEngine.swift in Sources */,
+				550021D47DEBBF98AF7C263F /* Store.swift in Sources */,
+				4191BB1A201DB9D2B8844608 /* TencentProvider.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F8044DC1093CDB096CCA636B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2CCCD1E665D02374E49E4506 /* RankingParityTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		3243FCE4EECB9F46F920FF06 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 966812202F39674278D73DDD /* ETFMomentumCore */;
+			targetProxy = 0ED1FE64013295B65F5DBEC8 /* PBXContainerItemProxy */;
+		};
+		664AB1FAB2479EC0149FF64D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E10F95A87F0672B48BFD37E6 /* ETFMomentumWidgetExtension */;
+			targetProxy = 58140E9ECBC98A3A33EBE689 /* PBXContainerItemProxy */;
+		};
+		77BE23478A5B0015A6FC25E2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 966812202F39674278D73DDD /* ETFMomentumCore */;
+			targetProxy = 39C0B1033DDB8A3132D8AD04 /* PBXContainerItemProxy */;
+		};
+		CD7C17BAEF60D62517BA2B2D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 966812202F39674278D73DDD /* ETFMomentumCore */;
+			targetProxy = 078D135EBEE9B19BBB4BC52D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		008224B9CEC0F1E0AEFA3B5E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = local.etf.momentum.tests;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		0EC72C3566DB32F46097800A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				INFOPLIST_FILE = Config/AppInfo.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = local.etf.momentum.app;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		1B8254D4630616E3E5CCEDD0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = local.etf.momentum.core;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		1BBFE7AA855B8D9406BD9C50 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = local.etf.momentum.core;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
+		};
+		1FBA97F0327563F255D3113A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = Config/WidgetInfo.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = local.etf.momentum.app.widget;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		1FC3BFD940E5EDAE9CA283BB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		3119830BCDEF06D4F8D0F9DE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = local.etf.momentum.tests;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		8F721BC7C71994B2A0C90EC3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		E79C01CCE33A71CB3D42FDF5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				INFOPLIST_FILE = Config/AppInfo.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = local.etf.momentum.app;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		FBBC1675B42FE12F035236D7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = Config/WidgetInfo.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = local.etf.momentum.app.widget;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3275A8FCEF97A0A6174961EF /* Build configuration list for PBXNativeTarget "ETFMomentumCore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1BBFE7AA855B8D9406BD9C50 /* Debug */,
+				1B8254D4630616E3E5CCEDD0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4ACEC90923E3DDB442D2583E /* Build configuration list for PBXNativeTarget "ETFMomentumCoreTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3119830BCDEF06D4F8D0F9DE /* Debug */,
+				008224B9CEC0F1E0AEFA3B5E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		77889414DAA9EE203A82ACB4 /* Build configuration list for PBXNativeTarget "ETFMomentumApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E79C01CCE33A71CB3D42FDF5 /* Debug */,
+				0EC72C3566DB32F46097800A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B7200C93EBD58A9E6F9B35CA /* Build configuration list for PBXNativeTarget "ETFMomentumWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FBBC1675B42FE12F035236D7 /* Debug */,
+				1FBA97F0327563F255D3113A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C873308AA32E799B5E89A3B8 /* Build configuration list for PBXProject "ETFMomentumWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8F721BC7C71994B2A0C90EC3 /* Debug */,
+				1FC3BFD940E5EDAE9CA283BB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D223B9DC07839B974673645F /* Project object */;
+}
