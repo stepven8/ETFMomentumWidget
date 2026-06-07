@@ -9,7 +9,7 @@ struct ETFMomentumApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(store)
-                .frame(minWidth: 1180, minHeight: 760)
+                .frame(minHeight: 760)
                 .task {
                     if store.snapshot == nil {
                         _ = await store.refresh()
@@ -17,5 +17,7 @@ struct ETFMomentumApp: App {
                 }
         }
         .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 1180, height: 760)
+        .windowResizability(.contentSize)
     }
 }

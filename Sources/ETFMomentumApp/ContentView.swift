@@ -1,4 +1,5 @@
 import ETFMomentumCore
+import AppKit
 import SwiftUI
 
 struct ContentView: View {
@@ -6,6 +7,9 @@ struct ContentView: View {
     @State private var selectedETF: ETF?
     @State private var selectedTab: Panel = .ranking
     @State private var detailKLines: [KLine] = []
+    @State private var isDetailHidden = false
+    @State private var expandedWindowFrame: CGRect?
+    @State private var hostingWindow: NSWindow?
 
     enum Panel: String, CaseIterable {
         case ranking = "完整排行"
@@ -13,17 +17,47 @@ struct ContentView: View {
     }
 
     var body: some View {
-        NavigationSplitView {
-            sidebar
-        } detail: {
-            if selectedTab == .settings {
-                SettingsView()
+        Group {
+            if isDetailHidden {
+                sidebar
+                    .frame(width: sidebarWidth)
             } else {
-                detail
+                NavigationSplitView {
+                    sidebar
+                } detail: {
+                    if selectedTab == .settings {
+                        SettingsView()
+                    } else {
+                        detail
+                    }
+                }
             }
         }
         .background(Color.appBackground)
+        .background(WindowAccessor { window in
+            hostingWindow = window
+            configureWindowForCurrentState()
+        })
+        .frame(width: isDetailHidden ? sidebarWidth : nil)
+        .frame(minWidth: isDetailHidden ? sidebarWidth : expandedMinWidth, minHeight: minWindowHeight)
         .preferredColorScheme(.dark)
+        .animation(.easeInOut(duration: 0.18), value: isDetailHidden)
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button {
+                    isDetailHidden.toggle()
+                } label: {
+                    Image(systemName: isDetailHidden ? "rectangle.split.2x1" : "sidebar.right")
+                }
+                .help(isDetailHidden ? "显示详情页" : "隐藏详情页")
+            }
+        }
+        .onChange(of: isDetailHidden) { _, hidden in
+            resizeWindowForDetailVisibility(isHidden: hidden)
+        }
+        .onAppear {
+            configureWindowForCurrentState()
+        }
     }
 
     private var sidebar: some View {
@@ -46,7 +80,7 @@ struct ContentView: View {
 
             RankingList(selectedETF: $selectedETF)
         }
-        .frame(minWidth: 430)
+        .frame(width: sidebarWidth)
         .background(Color.sidebarBackground)
     }
 
@@ -94,6 +128,10 @@ struct ContentView: View {
         return "最后更新 \(date.formatted(date: .numeric, time: .standard))"
     }
 
+    private var sidebarWidth: CGFloat { 430 }
+    private var expandedMinWidth: CGFloat { 1180 }
+    private var minWindowHeight: CGFloat { 760 }
+
     private func refresh() {
         Task {
             let success = await store.refresh()
@@ -102,6 +140,101 @@ struct ContentView: View {
                 if success, let generatedAt = store.snapshot?.generatedAt {
                     store.refreshMessage = "更新完成 \(generatedAt.formatted(date: .omitted, time: .standard))"
                 }
+            }
+        }
+    }
+
+    @MainActor
+    private func resizeWindowForDetailVisibility(isHidden: Bool) {
+        guard let window = activeWindow else { return }
+        if isHidden {
+            expandedWindowFrame = window.frame
+            applyHiddenWindowLimits(to: window)
+            let targetWidth = sidebarWidth
+            let currentFrame = window.frame
+            let newFrame = CGRect(
+                x: currentFrame.minX,
+                y: currentFrame.maxY - currentFrame.height,
+                width: targetWidth,
+                height: currentFrame.height
+            )
+            window.setFrame(newFrame, display: true, animate: true)
+            window.setContentSize(CGSize(width: sidebarWidth, height: max(window.contentView?.bounds.height ?? currentFrame.height, minWindowHeight)))
+        } else {
+            applyExpandedWindowLimits(to: window)
+            let currentFrame = window.frame
+            let savedFrame = expandedWindowFrame ?? currentFrame
+            let targetFrame = CGRect(
+                x: savedFrame.minX,
+                y: savedFrame.minY,
+                width: max(savedFrame.width, expandedMinWidth),
+                height: max(savedFrame.height, minWindowHeight)
+            )
+            window.setFrame(targetFrame, display: true, animate: true)
+        }
+    }
+
+    @MainActor
+    private func configureWindowForCurrentState() {
+        DispatchQueue.main.async {
+            guard let window = activeWindow else { return }
+            if isDetailHidden {
+                applyHiddenWindowLimits(to: window)
+                let frame = window.frame
+                window.setFrame(
+                    CGRect(x: frame.minX, y: frame.minY, width: sidebarWidth, height: frame.height),
+                    display: true,
+                    animate: false
+                )
+            } else {
+                applyExpandedWindowLimits(to: window)
+            }
+        }
+    }
+
+    @MainActor
+    private func applyHiddenWindowLimits(to window: NSWindow) {
+        let minSize = CGSize(width: sidebarWidth, height: minWindowHeight)
+        let maxSize = CGSize(width: sidebarWidth, height: CGFloat.greatestFiniteMagnitude)
+        window.contentMinSize = minSize
+        window.contentMaxSize = maxSize
+        window.minSize = minSize
+        window.maxSize = maxSize
+    }
+
+    @MainActor
+    private func applyExpandedWindowLimits(to window: NSWindow) {
+        let minSize = CGSize(width: expandedMinWidth, height: minWindowHeight)
+        let maxSize = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        window.contentMaxSize = maxSize
+        window.maxSize = maxSize
+        window.contentMinSize = minSize
+        window.minSize = minSize
+    }
+
+    @MainActor
+    private var activeWindow: NSWindow? {
+        hostingWindow ?? NSApp.keyWindow ?? NSApp.windows.first { $0.isVisible }
+    }
+}
+
+private struct WindowAccessor: NSViewRepresentable {
+    var onResolve: (NSWindow) -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            if let window = view.window {
+                onResolve(window)
+            }
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            if let window = nsView.window {
+                onResolve(window)
             }
         }
     }
