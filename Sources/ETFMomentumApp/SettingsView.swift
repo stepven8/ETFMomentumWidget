@@ -3,6 +3,8 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var store: AppStore
+    @State private var isSaving = false
+    @State private var saveMessage: String?
 
     var body: some View {
         Form {
@@ -49,15 +51,44 @@ struct SettingsView: View {
                 }
             }
             Button {
-                try? store.saveConfigAndPool()
+                saveAndRefresh()
             } label: {
-                Label("保存设置", systemImage: "square.and.arrow.down")
+                Label(isSaving ? "保存并重算中" : "保存设置", systemImage: isSaving ? "arrow.clockwise" : "square.and.arrow.down")
             }
             .buttonStyle(.borderedProminent)
+            .disabled(isSaving)
+
+            if let saveMessage {
+                Text(saveMessage)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(saveMessage.contains("失败") ? Color.warningText : Color.textSecondary)
+            }
         }
         .formStyle(.grouped)
         .padding()
         .background(Color.appBackground)
+    }
+
+    private func saveAndRefresh() {
+        isSaving = true
+        saveMessage = "正在保存设置并重新计算排行..."
+        Task {
+            do {
+                try store.saveConfigAndPool()
+                let success = await store.refresh()
+                await MainActor.run {
+                    isSaving = false
+                    saveMessage = success
+                        ? "保存完成，排行已重新计算 \(Date().formatted(date: .omitted, time: .standard))"
+                        : "保存成功，但重新计算失败或超时"
+                }
+            } catch {
+                await MainActor.run {
+                    isSaving = false
+                    saveMessage = "保存失败：\(error.localizedDescription)"
+                }
+            }
+        }
     }
 
     private func numberField(_ title: String, value: Binding<Double>) -> some View {

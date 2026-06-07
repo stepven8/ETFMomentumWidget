@@ -42,6 +42,21 @@ public enum MomentumMath {
         }
     }
 
+    public static func movingAverage(for klines: [KLine], period: Int) -> [Double?] {
+        guard period > 0 else { return Array(repeating: nil, count: klines.count) }
+        var output: [Double?] = []
+        output.reserveCapacity(klines.count)
+        var sum = 0.0
+        for index in klines.indices {
+            sum += klines[index].close
+            if index >= period {
+                sum -= klines[index - period].close
+            }
+            output.append(index + 1 >= period ? sum / Double(period) : nil)
+        }
+        return output
+    }
+
     private static func ema(previous: Double?, value: Double, period: Double) -> Double {
         guard let previous else { return value }
         let alpha = 2.0 / (period + 1.0)

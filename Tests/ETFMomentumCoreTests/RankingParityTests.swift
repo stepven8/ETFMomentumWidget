@@ -10,6 +10,19 @@ import Testing
     #expect(abs(scored.score - scored.annRet) < 1e-10)
 }
 
+@Test func movingAverageUsesTrailingCloseWindow() {
+    let lines = (1...6).map { value in
+        KLine(date: fixtureNow, open: Double(value), close: Double(value), high: Double(value), low: Double(value), volume: 1_000)
+    }
+    let ma3 = MomentumMath.movingAverage(for: lines, period: 3)
+
+    #expect(ma3[0] == nil)
+    #expect(ma3[1] == nil)
+    #expect(ma3[2] == 2)
+    #expect(ma3[3] == 3)
+    #expect(ma3[5] == 5)
+}
+
 @Test func rankingEnginePreservesSourceOrderingAndFilters() async {
     let config = StrategyConfig(
         lookbackDays: 25,

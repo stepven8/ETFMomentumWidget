@@ -262,6 +262,7 @@ struct CandleChart: View {
                         context.stroke(Path(roundedRect: rect.insetBy(dx: -2, dy: -2), cornerRadius: 2), with: .color(Color.white.opacity(0.82)), lineWidth: 1)
                     }
                 }
+                drawMovingAverages(context: context, plotRect: candleRect, range: range, minValue: minLow, maxValue: maxHigh)
                 drawSelection(context: context, candleRect: candleRect, macdRect: macdRect, count: visibleKLines.count, minValue: minLow, maxValue: maxHigh)
             }
             .contentShape(Rectangle())
@@ -324,6 +325,53 @@ struct CandleChart: View {
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .foregroundStyle(Color.textSecondary)
             context.draw(text, at: CGPoint(x: size.width - 24, y: y + 7), anchor: .center)
+        }
+    }
+
+    private func drawMovingAverages(context: GraphicsContext, plotRect: CGRect, range: Range<Int>, minValue: Double, maxValue: Double) {
+        let specs: [(period: Int, color: Color)] = [
+            (5, .ma5),
+            (20, .ma20),
+            (60, .ma60),
+            (120, .ma120)
+        ]
+        for spec in specs {
+            let values = MomentumMath.movingAverage(for: klines, period: spec.period)
+            var path = Path()
+            var hasPoint = false
+            for globalIndex in range {
+                guard let value = values[globalIndex] else { continue }
+                let localIndex = globalIndex - range.lowerBound
+                guard let x = ChartGeometry.xForIndex(localIndex, plotRect: plotRect, count: range.count) else { continue }
+                let point = CGPoint(x: x, y: y(value, min: minValue, max: maxValue, plotRect: plotRect))
+                if hasPoint {
+                    path.addLine(to: point)
+                } else {
+                    path.move(to: point)
+                    hasPoint = true
+                }
+            }
+            context.stroke(path, with: .color(spec.color), lineWidth: 1.15)
+        }
+        drawMovingAverageLegend(context: context, plotRect: plotRect, range: range, specs: specs)
+    }
+
+    private func drawMovingAverageLegend(
+        context: GraphicsContext,
+        plotRect: CGRect,
+        range: Range<Int>,
+        specs: [(period: Int, color: Color)]
+    ) {
+        let selected = selectedIndex.flatMap { range.contains($0) ? $0 : nil } ?? max(range.upperBound - 1, range.lowerBound)
+        var x = plotRect.minX + 8
+        for spec in specs {
+            let values = MomentumMath.movingAverage(for: klines, period: spec.period)
+            let valueText = values.indices.contains(selected) ? values[selected]?.formatted(.number.precision(.fractionLength(3))) ?? "--" : "--"
+            let text = Text("MA\(spec.period) \(valueText)")
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundStyle(spec.color)
+            context.draw(text, at: CGPoint(x: x, y: plotRect.minY + 8), anchor: .topLeading)
+            x += spec.period == 120 ? 86 : 78
         }
     }
 
@@ -575,4 +623,8 @@ struct Sparkline: View {
 private extension Color {
     static let chartBackground = Color(red: 0.10, green: 0.11, blue: 0.14)
     static let gridLine = Color.white.opacity(0.10)
+    static let ma5 = Color(red: 1.00, green: 0.82, blue: 0.24)
+    static let ma20 = Color(red: 0.86, green: 0.48, blue: 1.00)
+    static let ma60 = Color(red: 0.36, green: 0.76, blue: 1.00)
+    static let ma120 = Color(red: 0.62, green: 0.84, blue: 0.78)
 }
