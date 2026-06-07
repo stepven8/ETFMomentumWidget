@@ -92,7 +92,7 @@ public final class TencentProvider: MarketDataProvider {
         let root = try JSONDecoder().decode(TencentRoot.self, from: data)
         guard let stock = root.data[symbol] else { throw MarketDataError.missingData }
         let rawLines = stock.qfqday ?? stock.day ?? []
-        let lines = rawLines.compactMap(parseKLine)
+        let lines = MomentumMath.withDailyPctChange(rawLines.compactMap(parseKLine))
         let quote = parseQuote(stock.qt?[symbol], etf: etf, fallback: lines.last)
         return (quote, lines)
     }

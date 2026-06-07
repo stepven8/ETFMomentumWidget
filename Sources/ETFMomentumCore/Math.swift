@@ -1,6 +1,18 @@
 import Foundation
 
 public enum MomentumMath {
+    public static func withDailyPctChange(_ klines: [KLine]) -> [KLine] {
+        guard !klines.isEmpty else { return [] }
+        return klines.enumerated().map { index, kline in
+            guard index > 0 else { return kline }
+            let previousClose = klines[index - 1].close
+            guard previousClose != 0 else { return kline }
+            var updated = kline
+            updated.pctChange = (kline.close / previousClose - 1) * 100
+            return updated
+        }
+    }
+
     public static func annualizedReturn(priceSeries: [Double], lookbackDays: Int) -> Double {
         let recent = Array(priceSeries.suffix(lookbackDays + 1))
         let y = recent.map { Foundation.log($0) }

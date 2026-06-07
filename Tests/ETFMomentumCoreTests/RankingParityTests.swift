@@ -23,6 +23,20 @@ import Testing
     #expect(ma3[5] == 5)
 }
 
+@Test func dailyPctChangeIsCalculatedFromPreviousClose() {
+    let lines = [
+        KLine(date: fixtureNow, open: 10, close: 10, high: 10, low: 10, volume: 1_000),
+        KLine(date: fixtureNow, open: 10, close: 11, high: 11, low: 10, volume: 1_000),
+        KLine(date: fixtureNow, open: 11, close: 10.45, high: 11, low: 10.4, volume: 1_000)
+    ]
+
+    let updated = MomentumMath.withDailyPctChange(lines)
+
+    #expect(updated[0].pctChange == 0)
+    #expect(abs(updated[1].pctChange - 10) < 0.0000000001)
+    #expect(abs(updated[2].pctChange - -5) < 0.0000000001)
+}
+
 @Test func rankingEnginePreservesSourceOrderingAndFilters() async {
     let config = StrategyConfig(
         lookbackDays: 25,
