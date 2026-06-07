@@ -29,12 +29,18 @@ struct ContentView: View {
     private var sidebar: some View {
         VStack(spacing: 0) {
             header
-            Picker("", selection: $selectedTab) {
+            HStack(spacing: 0) {
                 ForEach(Panel.allCases, id: \.self) { panel in
-                    Text(panel.rawValue).tag(panel)
+                    Button {
+                        selectedTab = panel
+                    } label: {
+                        Text(panel.rawValue)
+                            .font(.system(size: 13, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(PanelTabButtonStyle(isSelected: selectedTab == panel))
                 }
             }
-            .pickerStyle(.segmented)
             .padding(.horizontal, 14)
             .padding(.bottom, 12)
 
@@ -61,7 +67,7 @@ struct ContentView: View {
                 } label: {
                     Label(store.isRefreshing ? "更新中" : "手动更新", systemImage: "arrow.clockwise")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(HeaderActionButtonStyle())
                 .disabled(store.isRefreshing)
             }
             if let refreshMessage = store.refreshMessage {
@@ -198,6 +204,50 @@ struct RankingRow: View {
     }
 }
 
+struct HeaderActionButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(Color.textPrimary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(configuration.isPressed ? Color.controlPressed : Color.controlBackground)
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.controlBorder, lineWidth: 1)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .opacity(configuration.isPressed ? 0.82 : 1)
+    }
+}
+
+struct PanelTabButtonStyle: ButtonStyle {
+    var isSelected: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(isSelected ? Color.textPrimary : Color.textSecondary)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(backgroundColor(isPressed: configuration.isPressed))
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 9)
+                    .stroke(isSelected ? Color.controlBorder : Color.clear, lineWidth: 1)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 9))
+            .opacity(configuration.isPressed ? 0.86 : 1)
+    }
+
+    private func backgroundColor(isPressed: Bool) -> Color {
+        if isPressed {
+            return Color.controlPressed
+        }
+        return isSelected ? Color.controlBackground : Color.clear
+    }
+}
+
 struct TopFiveStrip: View {
     var metrics: [RankingMetric]
 
@@ -238,6 +288,9 @@ extension Color {
     static let selectedRow = Color(red: 0.21, green: 0.25, blue: 0.31)
     static let rowBorder = Color.white.opacity(0.07)
     static let focusBorder = Color(red: 0.55, green: 0.68, blue: 0.86)
+    static let controlBackground = Color.white.opacity(0.10)
+    static let controlPressed = Color.white.opacity(0.15)
+    static let controlBorder = Color.white.opacity(0.14)
     static let textPrimary = Color(red: 0.95, green: 0.97, blue: 1.00)
     static let textSecondary = Color(red: 0.70, green: 0.75, blue: 0.82)
     static let textMuted = Color(red: 0.49, green: 0.54, blue: 0.62)
