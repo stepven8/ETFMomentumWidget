@@ -81,6 +81,27 @@ import Testing
     #expect(succeeded == false)
 }
 
+@Test func savingDisabledETFImmediatelyUpdatesCachedRanking() async throws {
+    let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)
+    let store = await AppStore(directory: directory)
+    let enabled = ETF(code: "510300.XSHG", name: "沪深300ETF华泰柏瑞")
+    let disabled = ETF(code: "159915.XSHE", name: "创业板ETF易方达", enabled: false)
+
+    try await MainActor.run {
+        store.etfs = [enabled, disabled]
+        try store.saveSnapshot(RankingSnapshot(metrics: [
+            RankingMetric(etf: enabled, score: 2, filterReason: .included),
+            RankingMetric(etf: ETF(code: disabled.code, name: disabled.name), score: 3, filterReason: .included)
+        ]))
+        try store.saveConfigAndPool()
+    }
+
+    let snapshot = await store.snapshot
+    #expect(snapshot?.included.map(\.etf.code) == ["510300.XSHG"])
+    #expect(snapshot?.metrics.first { $0.etf.code == disabled.code }?.filterReason == .disabled)
+}
+
 private let fixtureNow = ISO8601DateFormatter().date(from: "2026-06-05T06:00:00Z")!
 
 private final class FixtureProvider: MarketDataProvider, @unchecked Sendable {

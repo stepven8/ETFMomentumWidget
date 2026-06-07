@@ -4,25 +4,50 @@ public struct RankingEngine: Sendable {
     public var config: StrategyConfig
     public var provider: any MarketDataProvider
     public var now: @Sendable () -> Date
+    public var maxConcurrentCalculations: Int
 
-    public init(config: StrategyConfig, provider: any MarketDataProvider, now: @escaping @Sendable () -> Date = Date.init) {
+    public init(
+        config: StrategyConfig,
+        provider: any MarketDataProvider,
+        now: @escaping @Sendable () -> Date = Date.init,
+        maxConcurrentCalculations: Int = 8
+    ) {
         self.config = config
         self.provider = provider
         self.now = now
+        self.maxConcurrentCalculations = max(1, maxConcurrentCalculations)
     }
 
     public func rank(etfs: [ETF], includeFiltered: Bool = true) async -> RankingSnapshot {
-        var output: [RankingMetric] = []
-        for etf in etfs {
-            guard etf.enabled else {
-                if includeFiltered { output.append(RankingMetric(etf: etf, filterReason: .disabled)) }
-                continue
+        var indexed: [(Int, RankingMetric)] = []
+        indexed.reserveCapacity(etfs.count)
+
+        await withTaskGroup(of: (Int, RankingMetric)?.self) { group in
+            var iterator = Array(etfs.enumerated()).makeIterator()
+
+            func submitNext() {
+                guard let (index, etf) = iterator.next() else { return }
+                group.addTask {
+                    guard etf.enabled else {
+                        return includeFiltered ? (index, RankingMetric(etf: etf, filterReason: .disabled)) : nil
+                    }
+                    let metric = await calculate(etf: etf)
+                    return (includeFiltered || metric.filterReason == .included) ? (index, metric) : nil
+                }
             }
-            let metric = await calculate(etf: etf)
-            if includeFiltered || metric.filterReason == .included {
-                output.append(metric)
+
+            for _ in 0..<min(maxConcurrentCalculations, etfs.count) {
+                submitNext()
+            }
+            while let result = await group.next() {
+                if let result {
+                    indexed.append(result)
+                }
+                submitNext()
             }
         }
+
+        let output = indexed.sorted { $0.0 < $1.0 }.map(\.1)
         let included = output.filter { $0.filterReason == .included }.sorted { $0.score > $1.score }
         let filtered = output.filter { $0.filterReason != .included }
         return RankingSnapshot(generatedAt: now(), metrics: included + filtered)

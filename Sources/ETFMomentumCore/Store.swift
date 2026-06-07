@@ -50,12 +50,45 @@ public final class AppStore: ObservableObject {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try encoder.encode(config).write(to: directory.appendingPathComponent("config.json"), options: .atomic)
         try encoder.encode(etfs).write(to: directory.appendingPathComponent("etfs.json"), options: .atomic)
+        applyCurrentPoolToSnapshot()
     }
 
     public func saveSnapshot(_ snapshot: RankingSnapshot) throws {
         self.snapshot = snapshot
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try encoder.encode(snapshot).write(to: directory.appendingPathComponent("snapshot.json"), options: .atomic)
+    }
+
+    public func applyCurrentPoolToSnapshot() {
+        guard let snapshot else { return }
+
+        let poolByCode = Dictionary(uniqueKeysWithValues: etfs.map { ($0.code, $0) })
+        var metricsByCode = Dictionary(uniqueKeysWithValues: snapshot.metrics.map { ($0.etf.code, $0) })
+        var next: [RankingMetric] = []
+        next.reserveCapacity(etfs.count)
+
+        for etf in etfs {
+            if etf.enabled, var metric = metricsByCode.removeValue(forKey: etf.code) {
+                metric.etf = ETF(code: etf.code, name: metric.etf.name.isEmpty ? etf.name : metric.etf.name, enabled: true)
+                if metric.filterReason == .disabled {
+                    metric.filterReason = .calculationError
+                }
+                next.append(metric)
+            } else if etf.enabled {
+                next.append(RankingMetric(etf: etf, filterReason: .calculationError))
+            } else {
+                next.append(RankingMetric(etf: etf, filterReason: .disabled))
+            }
+        }
+
+        for metric in snapshot.metrics where poolByCode[metric.etf.code] == nil {
+            next.append(metric)
+        }
+
+        let included = next.filter { $0.filterReason == .included }.sorted { $0.score > $1.score }
+        let filtered = next.filter { $0.filterReason != .included }
+        self.snapshot = RankingSnapshot(generatedAt: snapshot.generatedAt, metrics: included + filtered)
+        try? encoder.encode(self.snapshot).write(to: directory.appendingPathComponent("snapshot.json"), options: .atomic)
     }
 
     public func refresh(provider: any MarketDataProvider = FallbackMarketDataProvider(), timeoutSeconds: UInt64 = 90) async -> Bool {

@@ -4,7 +4,7 @@ public final class FallbackMarketDataProvider: MarketDataProvider {
     private let primary: any MarketDataProvider
     private let fallback: any MarketDataProvider
 
-    public init(primary: any MarketDataProvider = EastmoneyProvider(), fallback: any MarketDataProvider = TencentProvider()) {
+    public init(primary: any MarketDataProvider = TencentProvider(), fallback: any MarketDataProvider = EastmoneyProvider()) {
         self.primary = AKShareProvider.isEnabledByEnvironment ? AKShareProvider() : primary
         self.fallback = fallback
     }
@@ -48,7 +48,7 @@ public final class TencentProvider: MarketDataProvider {
         self.dateFormatter.calendar = calendar
         self.dateFormatter.timeZone = calendar.timeZone
         self.dateFormatter.dateFormat = "yyyy-MM-dd"
-        self.navProvider = EastmoneyProvider(session: session)
+        self.navProvider = EastmoneyProvider(session: .etfMomentumNetValue)
     }
 
     public func quote(for etf: ETF) async throws -> Quote {
@@ -69,7 +69,7 @@ public final class TencentProvider: MarketDataProvider {
     public func premiumInfo(for etf: ETF, previousTradingDate: Date) async throws -> PremiumInfo {
         let daily = try await dailyKLines(for: etf, limit: 10)
         let close = daily.last(where: { calendar.isDate($0.date, inSameDayAs: previousTradingDate) })?.close ?? daily.last?.close
-        let nav = try await navProvider.fetchNetValue(for: etf)
+        let nav = try? await navProvider.fetchNetValue(for: etf)
         guard let close, let nav, nav != 0 else {
             return PremiumInfo(premium: nil, price: close, netValue: nav)
         }

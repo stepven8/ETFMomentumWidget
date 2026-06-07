@@ -1,7 +1,7 @@
 import ETFMomentumCore
 import Foundation
 
-let sample = Array(DefaultETFPool.items.prefix(10))
+let sample = CommandLine.arguments.contains("--all") ? DefaultETFPool.items : Array(DefaultETFPool.items.prefix(10))
 let config = StrategyConfig()
 let engine = RankingEngine(config: config, provider: FallbackMarketDataProvider())
 let snapshot = await engine.rank(etfs: sample, includeFiltered: true)
