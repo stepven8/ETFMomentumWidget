@@ -29,7 +29,9 @@ public struct RankingEngine: Sendable {
                 guard let (index, etf) = iterator.next() else { return }
                 group.addTask {
                     guard etf.enabled else {
-                        return includeFiltered ? (index, RankingMetric(etf: etf, filterReason: .disabled)) : nil
+                        guard includeFiltered else { return nil }
+                        let metric = await disabledMetric(etf: etf)
+                        return (index, metric)
                     }
                     let metric = await calculate(etf: etf)
                     return (includeFiltered || metric.filterReason == .included) ? (index, metric) : nil
@@ -51,6 +53,16 @@ public struct RankingEngine: Sendable {
         let included = output.filter { $0.filterReason == .included }.sorted { $0.score > $1.score }
         let filtered = output.filter { $0.filterReason != .included }
         return RankingSnapshot(generatedAt: now(), metrics: included + filtered)
+    }
+
+    public func disabledMetric(etf: ETF) async -> RankingMetric {
+        do {
+            let quote = try await provider.quote(for: etf)
+            let namedETF = ETF(code: etf.code, name: quote.name.isEmpty ? etf.name : quote.name, enabled: false)
+            return RankingMetric(etf: namedETF, currentPrice: quote.lastPrice, pctChange: quote.pctChange, filterReason: .disabled)
+        } catch {
+            return RankingMetric(etf: ETF(code: etf.code, name: etf.name, enabled: false), filterReason: .disabled)
+        }
     }
 
     public func calculate(etf: ETF) async -> RankingMetric {

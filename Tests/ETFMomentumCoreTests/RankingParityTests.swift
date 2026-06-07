@@ -153,10 +153,24 @@ import Testing
     let metric = await store.snapshot?.metrics.first { $0.etf.code == etf.code }
     #expect(metric?.filterReason == .disabled)
     #expect(metric?.score == 0)
-    #expect(metric?.currentPrice == 0)
-    #expect(metric?.pctChange == 0)
+    #expect(metric?.currentPrice == 2.153)
+    #expect(metric?.pctChange == -2.97)
     #expect(metric?.closes.isEmpty == true)
     #expect(metric?.etf.enabled == false)
+}
+
+@Test func disabledETFRefreshesQuoteWithoutRunningStrategyCalculation() async {
+    let etf = ETF(code: "513880.XSHG", name: "日经225ETF华安", enabled: false)
+    let provider = DisabledQuoteProvider()
+    let snapshot = await RankingEngine(config: StrategyConfig(), provider: provider, now: { fixtureNow }).rank(etfs: [etf], includeFiltered: true)
+
+    let metric = snapshot.metrics.first
+    #expect(metric?.filterReason == .disabled)
+    #expect(metric?.currentPrice == 2.153)
+    #expect(metric?.pctChange == -2.97)
+    #expect(metric?.score == 0)
+    #expect(metric?.closes.isEmpty == true)
+    #expect(await provider.dailyKLineCalls() == 0)
 }
 
 @Test func reenabledETFWaitsForRefreshInsteadOfShowingCalculationError() async throws {
@@ -288,5 +302,46 @@ private final class OptionalDataFailingProvider: FixtureProvider, @unchecked Sen
 
     override func premiumInfo(for etf: ETF, previousTradingDate: Date) async throws -> PremiumInfo {
         throw MarketDataError.missingData
+    }
+}
+
+private actor CallCounter {
+    private var value = 0
+
+    func increment() {
+        value += 1
+    }
+
+    func count() -> Int {
+        value
+    }
+}
+
+private final class DisabledQuoteProvider: MarketDataProvider, @unchecked Sendable {
+    private let counter = CallCounter()
+
+    func dailyKLineCalls() async -> Int {
+        await counter.count()
+    }
+
+    func quote(for etf: ETF) async throws -> Quote {
+        Quote(code: etf.code, name: etf.name, lastPrice: 2.153, pctChange: -2.97)
+    }
+
+    func dailyKLines(for etf: ETF, limit: Int) async throws -> [KLine] {
+        await counter.increment()
+        return []
+    }
+
+    func minuteVolumeSumToday(for etf: ETF, now: Date) async throws -> Double? {
+        nil
+    }
+
+    func premiumInfo(for etf: ETF, previousTradingDate: Date) async throws -> PremiumInfo {
+        PremiumInfo(premium: nil, price: nil, netValue: nil)
+    }
+
+    func previousTradingDate(beforeOrOn date: Date) async -> Date {
+        date
     }
 }

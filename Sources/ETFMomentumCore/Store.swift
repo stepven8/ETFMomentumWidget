@@ -79,7 +79,8 @@ public final class AppStore: ObservableObject {
             } else if etf.enabled {
                 next.append(RankingMetric(etf: etf, filterReason: .pendingRefresh))
             } else {
-                next.append(disabledMetric(for: etf))
+                let previous = metricsByCode.removeValue(forKey: etf.code)
+                next.append(disabledMetric(for: etf, previous: previous))
             }
         }
 
@@ -93,8 +94,19 @@ public final class AppStore: ObservableObject {
         try? encoder.encode(self.snapshot).write(to: directory.appendingPathComponent("snapshot.json"), options: .atomic)
     }
 
-    private func disabledMetric(for etf: ETF) -> RankingMetric {
-        RankingMetric(etf: ETF(code: etf.code, name: etf.name, enabled: false), filterReason: .disabled)
+    private func disabledMetric(for etf: ETF, previous: RankingMetric? = nil) -> RankingMetric {
+        let displayName: String
+        if let previousName = previous?.etf.name, !previousName.isEmpty {
+            displayName = previousName
+        } else {
+            displayName = etf.name
+        }
+        return RankingMetric(
+            etf: ETF(code: etf.code, name: displayName, enabled: false),
+            currentPrice: previous?.currentPrice ?? 0,
+            pctChange: previous?.pctChange ?? 0,
+            filterReason: .disabled
+        )
     }
 
     public func refresh(provider: any MarketDataProvider = FallbackMarketDataProvider(), timeoutSeconds: UInt64 = 90) async -> Bool {
