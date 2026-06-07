@@ -46,7 +46,7 @@ struct ETFDetailView: View {
             }
 
             VStack(spacing: 12) {
-                ChartPanel(title: "日 K 线", subtitle: "K 线 / MACD / 十字轴") {
+                ChartPanel(title: "日 K 线", subtitle: "K 线 / 成交量 / 十字轴") {
                     VStack(spacing: 8) {
                         ChartZoomBar(
                             visibleText: visibleRangeText,
@@ -65,8 +65,11 @@ struct ETFDetailView: View {
                         .frame(minHeight: 430)
                     }
                 }
-                ChartPanel(title: "成交量", subtitle: "红涨绿跌") {
-                    VolumeChart(klines: klines, selectedIndex: selectedIndex, visibleStart: visibleStart, visibleCount: visibleCount)
+                ChartPanel(title: "MACD", subtitle: "DIF / DEA / 柱") {
+                    MACDChart(
+                        points: Array(MomentumMath.macd(for: klines)[visibleRange]),
+                        selectedIndex: localSelectedIndex
+                    )
                         .frame(height: 110)
                 }
             }
@@ -102,6 +105,18 @@ struct ETFDetailView: View {
     }
 
     private var minVisibleCount: Int { min(30, max(klines.count, 1)) }
+
+    private var visibleRange: Range<Int> {
+        guard !klines.isEmpty else { return 0..<0 }
+        let start = min(max(visibleStart, 0), max(klines.count - 1, 0))
+        let end = min(start + max(visibleCount, 1), klines.count)
+        return start..<end
+    }
+
+    private var localSelectedIndex: Int? {
+        guard let selectedIndex, visibleRange.contains(selectedIndex) else { return nil }
+        return selectedIndex - visibleRange.lowerBound
+    }
 
     private func zoom(by factor: Double) {
         guard !klines.isEmpty else { return }
@@ -237,9 +252,9 @@ struct CandleChart: View {
                     return
                 }
                 let candleRect = candleRect(in: plotRect)
-                let macdRect = macdRect(in: plotRect)
+                let volumeRect = volumeRect(in: plotRect)
                 drawGrid(context: context, size: size, plotRect: candleRect, minValue: minLow, maxValue: maxHigh)
-                drawMACD(context: context, plotRect: macdRect, points: Array(MomentumMath.macd(for: klines)[range]))
+                drawVolume(context: context, plotRect: volumeRect, klines: visibleKLines)
                 drawDateAxis(context: context, plotRect: plotRect, visibleKLines: visibleKLines, globalStart: range.lowerBound)
                 let width = max(candleRect.width / CGFloat(max(visibleKLines.count, 1)), 2)
                 for (localIndex, kline) in visibleKLines.enumerated() {
@@ -263,7 +278,7 @@ struct CandleChart: View {
                     }
                 }
                 drawMovingAverages(context: context, plotRect: candleRect, range: range, minValue: minLow, maxValue: maxHigh)
-                drawSelection(context: context, candleRect: candleRect, macdRect: macdRect, count: visibleKLines.count, minValue: minLow, maxValue: maxHigh)
+                drawSelection(context: context, candleRect: candleRect, indicatorRect: volumeRect, count: visibleKLines.count, minValue: minLow, maxValue: maxHigh)
             }
             .contentShape(Rectangle())
             .onContinuousHover { phase in
@@ -305,7 +320,7 @@ struct CandleChart: View {
         CGRect(x: plotRect.minX, y: plotRect.minY, width: plotRect.width, height: max(plotRect.height * 0.70, 1))
     }
 
-    private func macdRect(in plotRect: CGRect) -> CGRect {
+    private func volumeRect(in plotRect: CGRect) -> CGRect {
         let candle = candleRect(in: plotRect)
         let gap: CGFloat = 16
         return CGRect(x: plotRect.minX, y: candle.maxY + gap, width: plotRect.width, height: max(plotRect.maxY - candle.maxY - gap, 1))
@@ -397,13 +412,13 @@ struct CandleChart: View {
         }
     }
 
-    private func drawSelection(context: GraphicsContext, candleRect: CGRect, macdRect: CGRect, count: Int, minValue: Double, maxValue: Double) {
+    private func drawSelection(context: GraphicsContext, candleRect: CGRect, indicatorRect: CGRect, count: Int, minValue: Double, maxValue: Double) {
         guard let selectedIndex, visibleRange.contains(selectedIndex) else { return }
         let localIndex = selectedIndex - visibleRange.lowerBound
         guard let x = ChartGeometry.xForIndex(localIndex, plotRect: candleRect, count: count) else { return }
         var vertical = Path()
         vertical.move(to: CGPoint(x: x, y: candleRect.minY))
-        vertical.addLine(to: CGPoint(x: x, y: macdRect.maxY))
+        vertical.addLine(to: CGPoint(x: x, y: indicatorRect.maxY))
         context.stroke(vertical, with: .color(Color.white.opacity(0.50)), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
 
         let close = klines[selectedIndex].close
@@ -420,6 +435,33 @@ struct CandleChart: View {
             .font(.system(size: 10, weight: .bold, design: .monospaced))
             .foregroundStyle(Color.textPrimary)
         context.draw(text, at: CGPoint(x: labelRect.midX, y: labelRect.midY + 1), anchor: .center)
+    }
+
+    private func drawVolume(context: GraphicsContext, plotRect: CGRect, klines: [KLine]) {
+        guard let maxVolume = klines.map(\.volume).max(), maxVolume > 0 else { return }
+        var baseline = Path()
+        baseline.move(to: CGPoint(x: plotRect.minX, y: plotRect.maxY))
+        baseline.addLine(to: CGPoint(x: plotRect.maxX, y: plotRect.maxY))
+        context.stroke(baseline, with: .color(Color.gridLine), lineWidth: 0.7)
+
+        let width = max(plotRect.width / CGFloat(klines.count), 1)
+        for (index, kline) in klines.enumerated() {
+            let x = plotRect.minX + CGFloat(index) * width + width / 2
+            let height = CGFloat(kline.volume / maxVolume) * plotRect.height
+            let rect = CGRect(
+                x: x - width * 0.32,
+                y: plotRect.maxY - height,
+                width: max(width * 0.64, 1),
+                height: max(height, 1)
+            )
+            let color = kline.close >= kline.open ? Color.upRed : Color.downGreen
+            context.fill(Path(rect), with: .color(color.opacity(0.68)))
+        }
+
+        let text = Text("成交量")
+            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+            .foregroundStyle(Color.textSecondary)
+        context.draw(text, at: CGPoint(x: plotRect.minX + 5, y: plotRect.minY + 5), anchor: .topLeading)
     }
 
     private func drawMACD(context: GraphicsContext, plotRect: CGRect, points: [MACDPoint]) {
