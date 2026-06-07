@@ -16,7 +16,10 @@ let package = Package(
         .target(name: "ETFMomentumCore"),
         .executableTarget(
             name: "ETFMomentumApp",
-            dependencies: ["ETFMomentumCore"]
+            dependencies: ["ETFMomentumCore"],
+            resources: [
+                .copy("Resources/纯五福七星ETF轮动策略（实测可行）.txt")
+            ]
         ),
         .executableTarget(
             name: "ETFMomentumSmoke",

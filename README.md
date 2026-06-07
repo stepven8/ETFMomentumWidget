@@ -4,6 +4,96 @@
 
 颜色遵循 A 股行情习惯：上涨为红色，下跌为绿色。
 
+## 应用截图
+
+![ETF 动量排行与 K 线详情](Docs/images/app-ranking-detail.png)
+
+![参数设置与 ETF 股票池](Docs/images/app-settings.png)
+
+## macOS 安装步骤
+
+### 1. 准备环境
+
+本项目是原生 macOS SwiftUI App，需要 macOS 14 或更高版本，并安装 Xcode。
+
+1. 从 Mac App Store 安装 Xcode。
+2. 第一次使用 Xcode 后，在终端执行：
+
+```bash
+xcode-select --install
+sudo xcodebuild -license accept
+```
+
+如果已经安装过命令行工具，可以跳过 `xcode-select --install`。
+
+### 2. 下载源码
+
+```bash
+cd ~/Downloads
+git clone https://github.com/stepven8/ETFMomentumWidget.git
+cd ETFMomentumWidget
+```
+
+### 3. 构建 App
+
+推荐直接用 Xcode 工程构建：
+
+```bash
+xcodebuild \
+  -project ETFMomentumWidget.xcodeproj \
+  -scheme ETFMomentumApp \
+  -configuration Debug \
+  -destination 'platform=macOS' \
+  build
+```
+
+构建成功后，App 通常位于：
+
+```bash
+~/Library/Developer/Xcode/DerivedData/ETFMomentumWidget-*/Build/Products/Debug/ETFMomentumApp.app
+```
+
+### 4. 安装到“应用程序”
+
+仓库内置了安装脚本，会把构建产物复制到 `/Applications/ETFMomentumApp.app`：
+
+```bash
+bash Scripts/install_app.sh
+```
+
+也可以手动安装：
+
+```bash
+APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -path '*ETFMomentumWidget*/Build/Products/Debug/ETFMomentumApp.app' -type d | head -1)
+rm -rf /Applications/ETFMomentumApp.app
+ditto "$APP_PATH" /Applications/ETFMomentumApp.app
+xattr -dr com.apple.quarantine /Applications/ETFMomentumApp.app 2>/dev/null || true
+open /Applications/ETFMomentumApp.app
+```
+
+### 5. 首次打开
+
+如果 macOS 提示来自未识别开发者：
+
+1. 打开“系统设置”。
+2. 进入“隐私与安全性”。
+3. 在安全提示处点击“仍要打开”。
+4. 再次打开 `/Applications/ETFMomentumApp.app`。
+
+### 6. 更新到最新版
+
+```bash
+cd ~/Downloads/ETFMomentumWidget
+git pull
+xcodebuild \
+  -project ETFMomentumWidget.xcodeproj \
+  -scheme ETFMomentumApp \
+  -configuration Debug \
+  -destination 'platform=macOS' \
+  build
+bash Scripts/install_app.sh
+```
+
 ## 运行
 
 ```bash

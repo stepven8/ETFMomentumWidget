@@ -25,6 +25,8 @@ targets:
     sources:
       - Sources/ETFMomentumApp
       - Assets.xcassets
+    resources:
+      - Sources/ETFMomentumApp/Resources
     dependencies:
       - target: ETFMomentumCore
       - target: ETFMomentumWidgetExtension

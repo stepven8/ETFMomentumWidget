@@ -1,0 +1,676 @@
+# 克隆自聚宽文章：https://www.joinquant.com/post/72500
+# 标题：七星高照5.1+五福闹春5.0+三马七星1.7实测收益续2
+# 作者：蓝色沸点38
+#
+# 本文件由 Jq策略/五福.txt 精简而来：仅保留策略3：ETF轮动策略。
+# 策略3参数与核心交易规则保持源文件一致，源文件未修改。
+
+import datetime
+import math
+import prettytable
+import numpy as np
+import pandas as pd
+from datetime import timedelta
+from jqdata import *
+from jqfactor import *
+from prettytable import PrettyTable
+
+
+""" ====================== 基础配置 ====================== """
+
+
+def initialize(context):
+    set_backtest()
+    set_params(context)
+    set_strategy_params(context)
+    schedule_tasks(context)
+
+
+# 基础参数设置
+def set_params(context):
+    """
+    仅开启策略3：ETF轮动策略。
+    """
+    g.portfolio_value_proportion = [0, 0, 1, 0]  # 仅开启ETF轮动
+
+    g.starting_cash = context.portfolio.total_value
+    g.stock_strategy = {}
+    g.strategy_holdings = {1: [], 2: [], 3: [], 4: []}
+    # 记录策略初始的金额, 用于计算各策略收益波动曲线
+    g.strategy_starting_cash = {
+        1: 0,
+        2: 0,
+        3: g.starting_cash * g.portfolio_value_proportion[2],  # ETF轮动 初始资金
+        4: 0,
+    }
+    # 记录每日策略收益
+    g.strategy_value_data = {}
+    g.strategy_value = {
+        1: 0,
+        2: 0,
+        3: g.starting_cash * g.portfolio_value_proportion[2],  # ETF轮动 初始资金
+        4: 0,
+    }
+
+
+# 策略参数设置
+def set_strategy_params(context):
+    """ 策略3 ETF轮动 参数 """
+    
+    # 大ETF池
+    # 说明：原池子偏“热门资产+强趋势主题”，不是全球宽基全集。
+    # 这里补充美国50、亚太、沙特、沪港深、港股红利低波等代表项，提高区域/风格覆盖。
+    # 实盘建议再叠加上市天数、成交额、QDII溢价率过滤，避免低流动性与高溢价品种。
+    g.etf_pool_3  = [
+        # 商品/另类资产
+        "518880.XSHG",  #黄金ETF华安
+        "159980.XSHE",  #有色ETF大成
+        "159985.XSHE",  #豆粕ETF华夏
+        "501018.XSHG",  #南方原油LOF
+        "161226.XSHE",  #国投白银LOF
+        "159981.XSHE",  #能源化工ETF建信
+
+        # 美国/全球科技与宽基
+        "513100.XSHG",  #纳指ETF国泰
+        "513390.XSHG",  #纳指100ETF博时
+        "513870.XSHG",  #纳指ETF富国
+        "159509.XSHE",  #纳指科技ETF景顺
+        "513290.XSHG",  #纳指生物科技ETF汇添富
+        "513500.XSHG",  #标普500ETF博时
+        "513650.XSHG",  #标普500ETF南方
+        "159529.XSHE",  #标普消费ETF景顺
+        "513400.XSHG",  #道琼期ETF鹏华
+        "513850.XSHG",  #美国50ETF易方达
+
+        # 日本/欧洲/亚太/中东
+        "513520.XSHG",  #日经ETF华夏
+        "513000.XSHG",  #日经225ETF易方达
+        "513880.XSHG",  #日经225ETF华安
+        "513030.XSHG",  #德国ETF华安
+        "513080.XSHG",  #法国ETF华安
+        "159687.XSHE",  #亚太精选ETF南方
+        "520830.XSHG",  #沙特ETF华泰柏瑞
+        "513310.XSHG",  #中韩半导华ETF华泰柏瑞
+        "513730.XSHG",  #东南亚科技ETF华泵析瑞
+
+        # 港股/中概/沪港深
+        "159792.XSHE",  #港股通互联网ETF富国
+        "513130.XSHG",  #恒生科技ETF华泰柏瑞
+        "513050.XSHG",  #中概互联网ETF易方达
+        "159920.XSHE",  #恒生ETF华夏
+        "513210.XSHG",  #恒生ETF易方达
+        "513600.XSHG",  #恒生指数ETF南方
+        "513690.XSHG",  #港股红利ETF博时
+        "513530.XSHG",  #港股通红利ETF华泰柏瑞
+        "513830.XSHG",  #港股通高股息ETF嘉实
+        "520550.XSHG",  #港股红利低波ETF招商
+        "517030.XSHG",  #沪港深300ETF易方达
+        "517100.XSHG",  #沪港深500ETF富国
+
+        # A股宽基/风格
+        "510300.XSHG",  #沪深300ETF华泰柏瑞
+        "510500.XSHG",  #中证500ETF南方
+        "510050.XSHG",  #上证50ETF华夏
+        "510210.XSHG",  #上证指数ETF富国
+        "159915.XSHE",  #创业板ETF易方达
+        "588080.XSHG",  #科创50ETF易方达
+        "512100.XSHG",  #中证1000ETF南方
+        "563360.XSHG",  #A500ETF华泰柏瑞
+        "563300.XSHG",  #中证2000ETF华泰柏瑞
+        "512890.XSHG",  #红利低波ETF华泰柏瑞
+        "159967.XSHE",  #创业板成长ETF华夏
+        "512040.XSHG",  #价值100ETF富国
+        "159201.XSHE",  #自由现金流ETF华夏
+
+        # 固收/现金防御
+        "511380.XSHG",  #可转债ETF博时
+        "511010.XSHG",  #国债ETF国泰
+        "511220.XSHG",  #城投债ETF海富通
+    ]    
+    
+    
+    g.lookback_days = 25  
+    g.holdings_num = 1    
+    g.defensive_etf = "511880.XSHG"
+    g.min_money = 5000  
+    
+    # 风险控制
+    g.stop_loss = 0.95
+    g.loss = 0.97
+    g.loss_limit = g.loss
+    g.min_score_threshold = 0
+    g.max_score_threshold = 100.0
+    
+    # 过滤参数
+    g.enable_volume_check = True
+    g.volume_lookback = 5
+    g.volume_threshold = 2
+    g.volume_return_limit = 1
+    g.use_short_momentum_filter = True
+    g.short_lookback_days = 10
+    g.short_momentum_threshold = 0.0
+    
+    # 盈利保护参数（七星172）
+    g.enable_profit_protection = True
+    g.profit_protection_lookback = 1
+    g.profit_protection_threshold = 0.05
+    g.profit_protection_check_times = ['11:00']
+    
+    # --- 参数桥接：解决 San Ma 报表函数报错 ---
+    g.m_days = g.lookback_days
+    g.m_score = g.min_score_threshold
+	
+    # === 新增：溢价率过滤参数 ===
+    g.enable_premium_filter = True      # 是否启用溢价率过滤
+    g.premium_threshold = 0.20          # 溢价率阈值，例如0.02表示2%（注意：七星1.6源码写的是0.20/20%，通常建议设为0.02或0.03）	
+
+    # 状态记录
+    g.position_highs = {}
+    g.rankings_cache = {'date': None, 'data': None}
+
+
+# 回测设置
+def set_backtest():
+    set_option("avoid_future_data", True)
+    set_benchmark("159919.XSHE")
+    set_option("use_real_price", True)
+
+    set_slippage(FixedSlippage(0.002), type="stock")
+    set_slippage(PriceRelatedSlippage(0.0001), type="fund")
+    cost_configs = [
+        ("stock", 0.0005, 0.85 / 10000, 5),
+        ("fund", 0, 0.0002, 5),
+        ("mmf", 0, 0, 0),
+    ]
+    for asset_type, close_tax, commission, min_comm in cost_configs:
+        set_order_cost(
+            OrderCost(
+                open_tax=0,
+                close_tax=close_tax,
+                open_commission=commission,
+                close_commission=commission,
+                close_today_commission=0,
+                min_commission=min_comm,
+            ),
+            type=asset_type,
+        )
+
+
+""" ====================== 策略3: ETF轮动 ====================== """
+
+
+def get_cached_rankings(context):
+    today = context.current_dt.date()
+    if g.rankings_cache.get('date') != today:
+        ranked = get_ranked_etfs_172(context)
+        g.rankings_cache = {'date': today, 'data': ranked}
+    return g.rankings_cache['data']
+
+
+def get_premium_rate_172(code, date, max_back_days=5):
+    price_data = get_price(code, start_date=date, end_date=date, frequency='daily', fields=['close'])
+    if price_data.empty:
+        return None, None, None
+    price = price_data['close'].iloc[0]
+
+    net_value = None
+    start_date = date - datetime.timedelta(days=max_back_days * 2)
+    trade_days = get_trade_days(start_date=start_date, end_date=date)
+    trade_days = [pd.to_datetime(d).date() for d in trade_days]
+    for dt in reversed(trade_days):
+        if dt > date:
+            continue
+        net_data = get_extras('unit_net_value', code, start_date=dt, end_date=dt, df=True)
+        if not net_data.empty and not pd.isna(net_data[code].iloc[0]):
+            net_value = net_data[code].iloc[0]
+            break
+        try:
+            q = query(finance.FUND_NET_VALUE).filter(
+                finance.FUND_NET_VALUE.code == code,
+                finance.FUND_NET_VALUE.day == dt
+            )
+            net_df = finance.run_query(q)
+            if not net_df.empty:
+                net_value = net_df['net_value'].iloc[0]
+                break
+        except:
+            continue
+
+    if net_value is None or net_value == 0:
+        return None, None, None
+    premium_rate = (price - net_value) / net_value
+    return premium_rate, price, net_value
+
+
+def check_profit_protection_172(security, context, lookback=None, threshold=None):
+    if not g.enable_profit_protection:
+        return False
+    lookback = lookback or g.profit_protection_lookback
+    threshold = threshold or g.profit_protection_threshold
+
+    hist = attribute_history(security, lookback, '1d', ['high'])
+    if hist.empty or len(hist) < lookback:
+        return False
+
+    max_high = hist['high'].max()
+    current_price = get_current_data()[security].last_price
+    return current_price <= max_high * (1 - threshold)
+
+
+def profit_protection_check_172(context):
+    if not g.enable_profit_protection:
+        return
+    for sec in g.strategy_holdings[3][:]:
+        if sec not in context.portfolio.positions:
+            continue
+        pos = context.portfolio.positions[sec]
+        if pos.total_amount > 0 and check_profit_protection_172(sec, context):
+            smart_order_target_value_172(sec, 0, context)
+
+
+def get_ranked_etfs_172(context):
+    etf_metrics = []
+    current_data = get_current_data()
+    for etf in g.etf_pool_3:
+        if current_data[etf].paused:
+            continue
+        metrics = calculate_momentum_metrics_172(context, etf)
+        if metrics and (g.min_score_threshold < metrics['score'] < g.max_score_threshold):
+            etf_metrics.append(metrics)
+    etf_metrics.sort(key=lambda x: x['score'], reverse=True)
+    return etf_metrics
+
+
+def get_annualized_returns_172(price_series, lookback_days):
+    recent = price_series[-(lookback_days + 1):]
+    y = np.log(recent)
+    x = np.arange(len(y))
+    weights = np.linspace(1, 2, len(y))
+    slope, _ = np.polyfit(x, y, 1, w=weights)
+    return math.exp(slope * 250) - 1
+
+
+def get_volume_ratio_172(context, security, lookback=None, threshold=None):
+    lookback = lookback or g.volume_lookback
+    threshold = threshold or g.volume_threshold
+    try:
+        hist = attribute_history(security, lookback, '1d', ['volume'])
+        if hist.empty or len(hist) < lookback:
+            return None
+        avg_vol = hist['volume'].mean()
+
+        today = context.current_dt.date()
+        df_vol = get_price(
+            security,
+            start_date=today,
+            end_date=context.current_dt,
+            frequency='1m',
+            fields=['volume'],
+            skip_paused=False,
+            fq='pre',
+        )
+        if df_vol is None or df_vol.empty:
+            return None
+
+        current_vol = df_vol['volume'].sum()
+        ratio = current_vol / avg_vol if avg_vol > 0 else 0
+        if ratio > threshold:
+            return ratio
+        return None
+    except:
+        return None
+
+
+def calculate_momentum_metrics_172(context, etf):
+    try:
+        lookback = max(g.lookback_days, g.short_lookback_days) + 20
+        prices = attribute_history(etf, lookback, '1d', ['close', 'high'])
+        if len(prices) < g.lookback_days:
+            return None
+
+        current_price = get_current_data()[etf].last_price
+        price_series = np.append(prices['close'].values, current_price)
+
+        if check_profit_protection_172(etf, context):
+            return None
+
+        if g.enable_premium_filter:
+            prev_date = get_trade_days(end_date=context.current_dt.date(), count=2)[0]
+            premium, _, _ = get_premium_rate_172(etf, prev_date)
+            if premium is not None and premium > g.premium_threshold:
+                return None
+
+        if g.enable_volume_check:
+            vol_ratio = get_volume_ratio_172(context, etf)
+            if vol_ratio is not None:
+                annualized = get_annualized_returns_172(price_series, g.lookback_days)
+                if annualized > g.volume_return_limit:
+                    return None
+
+        if len(price_series) >= g.short_lookback_days + 1:
+            short_ret = price_series[-1] / price_series[-(g.short_lookback_days + 1)] - 1
+            short_ann = (1 + short_ret) ** (250 / g.short_lookback_days) - 1
+        else:
+            short_ann = 0
+        if g.use_short_momentum_filter and short_ann < g.short_momentum_threshold:
+            return None
+
+        recent_y = np.log(price_series[-(g.lookback_days + 1):])
+        x = np.arange(len(recent_y))
+        weights = np.linspace(1, 2, len(recent_y))
+        slope, intercept = np.polyfit(x, recent_y, 1, w=weights)
+        ann_ret = math.exp(slope * 250) - 1
+        ss_res = np.sum(weights * (recent_y - (slope * x + intercept)) ** 2)
+        ss_tot = np.sum(weights * (recent_y - np.mean(recent_y)) ** 2)
+        r2 = 1 - ss_res / ss_tot if ss_tot != 0 else 0
+        score = ann_ret * r2
+
+        if len(price_series) >= 4:
+            day1 = price_series[-1] / price_series[-2]
+            day2 = price_series[-2] / price_series[-3]
+            day3 = price_series[-3] / price_series[-4]
+            if min(day1, day2, day3) < g.loss:
+                return None
+
+        return {
+            'etf': etf,
+            'etf_name': etf,
+            'annualized_returns': ann_ret,
+            'r_squared': r2,
+            'score': score,
+            'current_price': current_price,
+            'short_annualized': short_ann,
+        }
+    except:
+        return None
+
+def strategy_3_sell(context):
+    ranked = get_cached_rankings(context)
+    target_etfs = []
+    for m in ranked[:g.holdings_num]:
+        if m['score'] >= g.min_score_threshold:
+            target_etfs.append(m['etf'])
+    if not target_etfs and check_defensive_etf_available_172(context):
+        target_etfs = [g.defensive_etf]
+    target_set = set(target_etfs)
+
+    for s in g.strategy_holdings[3][:]:
+        if s not in context.portfolio.positions:
+            continue
+        if s not in target_set:
+            smart_order_target_value_172(s, 0, context)
+
+
+def check_defensive_etf_available_172(context):
+    data = get_current_data()
+    etf = g.defensive_etf
+    if data[etf].paused:
+        return False
+        
+    # 【修复实盘数据异常】：处理ETF在实盘中 limit 为 NaN 或 0 的情况
+    high_limit = data[etf].high_limit
+    low_limit = data[etf].low_limit
+    last_price = data[etf].last_price
+    
+    if pd.notna(high_limit) and high_limit > 0:
+        if last_price >= high_limit:
+            return False
+    if pd.notna(low_limit) and low_limit > 0:
+        if last_price <= low_limit:
+            return False
+            
+    return True
+
+
+def smart_order_target_value_172(security, target_value, context):
+    data = get_current_data()
+    if data[security].paused:
+        return False
+    price = data[security].last_price
+    if price == 0:
+        return False
+
+    target_amount = int(target_value / price)
+    target_amount = (target_amount // 100) * 100
+    if target_amount <= 0 and target_value > 0:
+        target_amount = 100
+
+    cur_pos = context.portfolio.positions.get(security, None)
+    cur_amount = cur_pos.total_amount if cur_pos else 0
+    diff = target_amount - cur_amount
+
+    # 【修复实盘数据异常】：增加 pd.notna() 和 >0 判断
+    high_limit = data[security].high_limit
+    low_limit = data[security].low_limit
+
+    if diff > 0 and pd.notna(high_limit) and high_limit > 0:
+        if price >= high_limit:
+            return False
+            
+    if diff < 0 and pd.notna(low_limit) and low_limit > 0:
+        if price <= low_limit:
+            return False
+            
+    if 0 < abs(diff) * price < g.min_money:
+        return False
+
+    if diff < 0:
+        closeable = cur_pos.closeable_amount if cur_pos else 0
+        if closeable == 0:
+            return False
+        diff = -min(abs(diff), closeable)
+
+    if diff != 0:
+        o = order(security, diff)
+        if o:
+            if diff < 0 and hasattr(o, "price") and hasattr(o, "avg_cost") and hasattr(o, "amount"):
+                try:
+                    g.strategy_value[3] += (o.price - o.avg_cost) * o.amount
+                except (TypeError, ValueError):
+                    pass
+            if target_value == 0:
+                if security in g.strategy_holdings[3]:
+                    g.strategy_holdings[3].remove(security)
+                if security in g.stock_strategy:
+                    del g.stock_strategy[security]
+            else:
+                if security not in g.strategy_holdings[3]:
+                    g.strategy_holdings[3].append(security)
+                g.stock_strategy[security] = 3
+            return True
+    return False
+
+
+def strategy_3_buy(context):
+    ranked = get_cached_rankings(context)
+    target_etfs = []
+    for m in ranked:
+        if len(target_etfs) >= g.holdings_num:
+            break
+        target_etfs.append(m['etf'])
+
+    if not target_etfs:
+        if check_defensive_etf_available_172(context):
+            target_etfs = [g.defensive_etf]
+        else:
+            return
+
+    to_sell = [s for s in g.strategy_holdings[3] if s not in target_etfs]
+    if to_sell:
+        return
+
+    total_val = context.portfolio.total_value * g.portfolio_value_proportion[2]
+    val_per = total_val / len(target_etfs)
+
+    for etf in target_etfs:
+        current_val = 0
+        if etf in context.portfolio.positions:
+            pos = context.portfolio.positions[etf]
+            if pos.total_amount > 0:
+                current_val = pos.total_amount * pos.price
+        if abs(current_val - val_per) > val_per * 0.05 or current_val == 0:
+            smart_order_target_value_172(etf, val_per, context)
+
+
+""" ====================== 公共记录与展示 ====================== """
+
+
+# 尾盘记录ETF轮动策略的收益
+def make_record(context):
+    positions = context.portfolio.positions
+    if not positions:
+        return
+    current_data = get_current_data()
+    g.strategy_value_data = {1: 0, 2: 0, 3: 0, 4: 0}
+    copy_strategy_value = {
+        1: 0,
+        2: 0,
+        3: g.strategy_value[3],
+        4: 0,
+    }
+    for stock, pos in positions.items():
+        strategy_id = g.stock_strategy.get(stock)
+        if strategy_id != 3:
+            log.warn(f"[make_record] 未找到 {stock} 对应的ETF轮动策略标记, 已跳过该持仓的拆分统计")
+            continue
+        current_value = pos.total_amount * current_data[stock].last_price
+        cost_value = pos.total_amount * pos.avg_cost
+        pnl_value = current_value - cost_value
+        copy_strategy_value[3] += pnl_value
+        g.strategy_value_data[3] += current_value
+
+    if g.portfolio_value_proportion[2] and g.strategy_starting_cash[3]:
+        record(
+            ETF轮动=round(
+                copy_strategy_value[3] / g.strategy_starting_cash[3] * 100 - 100, 2
+            )
+        )
+
+    if g.portfolio_value_proportion[2]:
+        log.info("[收盘] 检测最新的ETF动量排名, 方便明天参考")
+        ranked = get_ranked_etfs_172(context)
+        for i, m in enumerate(ranked[:5]):
+            log.info(f"排名{i+1}: {m['etf']} 得分: {m['score']:.4f}")
+
+
+def print_summary(context):
+    """打印当前投资组合的总资产和持仓详情"""
+    total_value = round(context.portfolio.total_value, 2)
+
+    current_stocks = context.portfolio.positions
+    if not current_stocks:
+        log.info(f"[持仓] 当前总资产: {total_value} 休息ing")
+        return
+
+    table = PrettyTable(
+        [
+            " 所属策略 ",
+            " 股票代码 ",
+            " 股票名称 ",
+            " 持仓数量 ",
+            " 持仓价格 ",
+            " 当前价格 ",
+            " 盈亏数额 ",
+            " 盈亏比例 ",
+            " 股票市值 ",
+            " 仓位占比 ",
+        ]
+    )
+    table.hrules = prettytable.ALL
+
+    total_market_value = 0
+    for stock in current_stocks:
+        current_shares = current_stocks[stock].total_amount
+        current_price = round(get_current_data()[stock].last_price, 3)
+        avg_cost = round(current_stocks[stock].avg_cost, 3)
+
+        profit_ratio = (current_price - avg_cost) / avg_cost if avg_cost != 0 else 0
+        profit_ratio_percent = f"{profit_ratio * 100:.2f}%"
+        profit_ratio_percent += f" {'↑' if profit_ratio > 0 else '↓'}"
+        profit_amount = round((current_price - avg_cost) * current_shares, 2)
+        market_value = round(current_shares * current_price, 2)
+        total_market_value += market_value
+        stock_code = stock.split(".")[0]
+
+        table.add_row(
+            [
+                g.stock_strategy.get(stock, "ETF轮动" if stock in g.strategy_holdings[3] else "未标记"),
+                stock_code,
+                format_stock_code(stock),
+                current_shares,
+                avg_cost,
+                current_price,
+                profit_amount,
+                profit_ratio_percent,
+                market_value,
+                f"{market_value / context.portfolio.total_value * 100:.2f}%",
+            ]
+        )
+
+    if g.strategy_value_data.get(3):
+        table.add_row(
+            [
+                "ETF轮动",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                f"{g.strategy_value_data[3]:.2f}",
+                f"{g.strategy_value_data[3] / total_value * 100:.2f}%",
+            ]
+        )
+    table.add_row(["总市值", "", "", "", "", "", "", "", f"{total_market_value:.2f}", ""])
+    table.add_row(["总资产", "", "", "", "", "", "", "", f"{total_value:.2f}", ""])
+
+    log.info(f"[持仓] 当前总资产\n{table}")
+
+
+""" ====================== 模块工具函数 ====================== """
+
+
+# 展示优化
+def format_stock_code(stock_code):
+    try:
+        stock_info = get_security_info(stock_code)
+    except Exception:
+        return f"{stock_code[:6]}"
+    return f"{stock_code[:6]}({stock_info.display_name}) "
+
+
+""" ====================== 执行入口, 定时任务下发 ====================== """
+
+
+def morning_greet(context):
+    log.info(f"策略存活确认，当前日期: {context.current_dt.date()}")
+
+
+def schedule_tasks(context):
+    """将ETF轮动策略定时任务集中在这里，确保实盘重启时也能加载"""
+    unschedule_all()
+    run_daily(morning_greet, "09:00")
+
+    for check_time in g.profit_protection_check_times:
+        run_daily(profit_protection_check_172, time=check_time)
+    run_daily(strategy_3_sell, time='14:00')
+    run_daily(strategy_3_buy, time='14:01')
+
+    run_daily(make_record, "15:01")
+    run_daily(print_summary, "15:02")
+
+
+def after_code_changed(context):
+    # 修复实盘热更新时，新增参数未初始化的报错
+    if not hasattr(g, 'enable_profit_protection'):
+        g.enable_profit_protection = True
+        g.profit_protection_lookback = 1
+        g.profit_protection_threshold = 0.05
+        g.profit_protection_check_times = ['11:00']
+
+    if not hasattr(g, 'enable_premium_filter'):
+        g.enable_premium_filter = True
+        g.premium_threshold = 0.20
+
+    schedule_tasks(context)
