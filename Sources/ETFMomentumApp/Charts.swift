@@ -1,4 +1,5 @@
 import ETFMomentumCore
+import AppKit
 import SwiftUI
 
 struct ETFDetailView: View {
@@ -22,7 +23,8 @@ struct ETFDetailView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(etf.name)
@@ -46,7 +48,7 @@ struct ETFDetailView: View {
             }
 
             VStack(spacing: 12) {
-                ChartPanel(title: "日 K 线", subtitle: "K 线 / 成交量 / 十字轴") {
+                ChartPanel(title: "日 K 线", subtitle: "K 线 / 十字轴") {
                     VStack(spacing: 8) {
                         ChartZoomBar(
                             visibleText: visibleRangeText,
@@ -62,19 +64,34 @@ struct ETFDetailView: View {
                             visibleStart: $visibleStart,
                             visibleCount: $visibleCount
                         )
-                        .frame(minHeight: 430)
+                        .frame(minHeight: 360)
                     }
+                }
+                ChartPanel(title: "成交量", subtitle: "红涨绿跌") {
+                    VolumeChart(
+                        klines: Array(klines[visibleRange]),
+                        selectedIndex: localSelectedIndex,
+                        globalStart: visibleRange.lowerBound,
+                        onSelect: selectVisibleIndex,
+                        onZoom: zoomByScroll
+                    )
+                    .frame(height: 120)
                 }
                 ChartPanel(title: "MACD", subtitle: "DIF / DEA / 柱") {
                     MACDChart(
                         points: Array(MomentumMath.macd(for: klines)[visibleRange]),
-                        selectedIndex: localSelectedIndex
+                        selectedIndex: localSelectedIndex,
+                        dates: Array(klines[visibleRange].map(\.date)),
+                        globalStart: visibleRange.lowerBound,
+                        onSelect: selectVisibleIndex,
+                        onZoom: zoomByScroll
                     )
-                        .frame(height: 110)
+                    .frame(height: 120)
                 }
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
+            }
         }
         .background(Color.appBackground)
         .preferredColorScheme(.dark)
@@ -126,6 +143,16 @@ struct ETFDetailView: View {
         let center = selectedIndex ?? min(visibleStart + oldCount / 2, klines.count - 1)
         visibleCount = newCount
         visibleStart = min(max(center - newCount / 2, 0), max(klines.count - newCount, 0))
+    }
+
+    private func zoomByScroll(_ delta: CGFloat) {
+        guard abs(delta) >= 0.5 else { return }
+        zoom(by: delta > 0 ? 0.88 : 1.12)
+    }
+
+    private func selectVisibleIndex(_ localIndex: Int) {
+        guard !klines.isEmpty else { return }
+        selectedIndex = min(max(visibleRange.lowerBound + localIndex, 0), klines.count - 1)
     }
 
     private func resetZoom() {
@@ -251,19 +278,16 @@ struct CandleChart: View {
                     drawEmptyState(context: context, size: size)
                     return
                 }
-                let candleRect = candleRect(in: plotRect)
-                let volumeRect = volumeRect(in: plotRect)
-                drawGrid(context: context, size: size, plotRect: candleRect, minValue: minLow, maxValue: maxHigh)
-                drawVolume(context: context, plotRect: volumeRect, klines: visibleKLines)
+                drawGrid(context: context, size: size, plotRect: plotRect, minValue: minLow, maxValue: maxHigh)
                 drawDateAxis(context: context, plotRect: plotRect, visibleKLines: visibleKLines, globalStart: range.lowerBound)
-                let width = max(candleRect.width / CGFloat(max(visibleKLines.count, 1)), 2)
+                let width = max(plotRect.width / CGFloat(max(visibleKLines.count, 1)), 2)
                 for (localIndex, kline) in visibleKLines.enumerated() {
                     let index = range.lowerBound + localIndex
-                    let x = candleRect.minX + CGFloat(localIndex) * width + width / 2
-                    let highY = y(kline.high, min: minLow, max: maxHigh, plotRect: candleRect)
-                    let lowY = y(kline.low, min: minLow, max: maxHigh, plotRect: candleRect)
-                    let openY = y(kline.open, min: minLow, max: maxHigh, plotRect: candleRect)
-                    let closeY = y(kline.close, min: minLow, max: maxHigh, plotRect: candleRect)
+                    let x = plotRect.minX + CGFloat(localIndex) * width + width / 2
+                    let highY = y(kline.high, min: minLow, max: maxHigh, plotRect: plotRect)
+                    let lowY = y(kline.low, min: minLow, max: maxHigh, plotRect: plotRect)
+                    let openY = y(kline.open, min: minLow, max: maxHigh, plotRect: plotRect)
+                    let closeY = y(kline.close, min: minLow, max: maxHigh, plotRect: plotRect)
                     let color = kline.close >= kline.open ? Color.upRed : Color.downGreen
                     var wick = Path()
                     wick.move(to: CGPoint(x: x, y: highY))
@@ -277,8 +301,8 @@ struct CandleChart: View {
                         context.stroke(Path(roundedRect: rect.insetBy(dx: -2, dy: -2), cornerRadius: 2), with: .color(Color.white.opacity(0.82)), lineWidth: 1)
                     }
                 }
-                drawMovingAverages(context: context, plotRect: candleRect, range: range, minValue: minLow, maxValue: maxHigh)
-                drawSelection(context: context, candleRect: candleRect, indicatorRect: volumeRect, count: visibleKLines.count, minValue: minLow, maxValue: maxHigh)
+                drawMovingAverages(context: context, plotRect: plotRect, range: range, minValue: minLow, maxValue: maxHigh)
+                drawSelection(context: context, plotRect: plotRect, count: visibleKLines.count, minValue: minLow, maxValue: maxHigh)
             }
             .contentShape(Rectangle())
             .onContinuousHover { phase in
@@ -292,13 +316,16 @@ struct CandleChart: View {
             .gesture(MagnificationGesture().onChanged { scale in
                 updateZoom(scale: scale)
             })
+            .background(ScrollWheelCaptureView { delta in
+                updateZoom(scrollDelta: delta)
+            })
         }
         .background(Color.chartBackground)
         .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
     private func updateSelection(at x: CGFloat, size: CGSize) {
-        let plotRect = candleRect(in: ChartGeometry.plotRect(size: size, reservesDateAxis: true))
+        let plotRect = ChartGeometry.plotRect(size: size, reservesDateAxis: true)
         guard let localIndex = ChartGeometry.indexForX(x, plotRect: plotRect, count: visibleRange.count) else { return }
         selectedIndex = min(visibleRange.lowerBound + localIndex, klines.count - 1)
     }
@@ -312,18 +339,11 @@ struct CandleChart: View {
         visibleStart = min(max(center - newCount / 2, 0), max(klines.count - newCount, 0))
     }
 
-    private func y(_ value: Double, min: Double, max: Double, plotRect: CGRect) -> CGFloat {
-        plotRect.maxY - CGFloat((value - min) / (max - min)) * plotRect.height
-    }
-
-    private func candleRect(in plotRect: CGRect) -> CGRect {
-        CGRect(x: plotRect.minX, y: plotRect.minY, width: plotRect.width, height: max(plotRect.height * 0.70, 1))
-    }
-
-    private func volumeRect(in plotRect: CGRect) -> CGRect {
-        let candle = candleRect(in: plotRect)
-        let gap: CGFloat = 16
-        return CGRect(x: plotRect.minX, y: candle.maxY + gap, width: plotRect.width, height: max(plotRect.maxY - candle.maxY - gap, 1))
+    private func updateZoom(scrollDelta: CGFloat) {
+        guard abs(scrollDelta) >= 0.5 else { return }
+        let factor = scrollDelta > 0 ? 0.88 : 1.12
+        let scale = 1 / factor
+        updateZoom(scale: scale)
     }
 
     private func drawGrid(context: GraphicsContext, size: CGSize, plotRect: CGRect, minValue: Double, maxValue: Double) {
@@ -412,56 +432,29 @@ struct CandleChart: View {
         }
     }
 
-    private func drawSelection(context: GraphicsContext, candleRect: CGRect, indicatorRect: CGRect, count: Int, minValue: Double, maxValue: Double) {
+    private func drawSelection(context: GraphicsContext, plotRect: CGRect, count: Int, minValue: Double, maxValue: Double) {
         guard let selectedIndex, visibleRange.contains(selectedIndex) else { return }
         let localIndex = selectedIndex - visibleRange.lowerBound
-        guard let x = ChartGeometry.xForIndex(localIndex, plotRect: candleRect, count: count) else { return }
+        guard let x = ChartGeometry.xForIndex(localIndex, plotRect: plotRect, count: count) else { return }
         var vertical = Path()
-        vertical.move(to: CGPoint(x: x, y: candleRect.minY))
-        vertical.addLine(to: CGPoint(x: x, y: indicatorRect.maxY))
+        vertical.move(to: CGPoint(x: x, y: plotRect.minY))
+        vertical.addLine(to: CGPoint(x: x, y: plotRect.maxY))
         context.stroke(vertical, with: .color(Color.white.opacity(0.50)), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
 
         let close = klines[selectedIndex].close
-        let closeY = y(close, min: minValue, max: maxValue, plotRect: candleRect)
+        let closeY = y(close, min: minValue, max: maxValue, plotRect: plotRect)
         var horizontal = Path()
-        horizontal.move(to: CGPoint(x: candleRect.minX, y: closeY))
-        horizontal.addLine(to: CGPoint(x: candleRect.maxX, y: closeY))
+        horizontal.move(to: CGPoint(x: plotRect.minX, y: closeY))
+        horizontal.addLine(to: CGPoint(x: plotRect.maxX, y: closeY))
         context.stroke(horizontal, with: .color(Color.white.opacity(0.38)), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
 
-        let labelRect = CGRect(x: candleRect.maxX + 5, y: closeY - 10, width: 47, height: 20)
+        let labelRect = CGRect(x: plotRect.maxX + 5, y: closeY - 10, width: 47, height: 20)
         context.fill(Path(roundedRect: labelRect, cornerRadius: 4), with: .color(Color.panelBackground.opacity(0.95)))
         context.stroke(Path(roundedRect: labelRect, cornerRadius: 4), with: .color(Color.white.opacity(0.18)), lineWidth: 0.7)
         let text = Text(close.formatted(.number.precision(.fractionLength(3))))
             .font(.system(size: 10, weight: .bold, design: .monospaced))
             .foregroundStyle(Color.textPrimary)
         context.draw(text, at: CGPoint(x: labelRect.midX, y: labelRect.midY + 1), anchor: .center)
-    }
-
-    private func drawVolume(context: GraphicsContext, plotRect: CGRect, klines: [KLine]) {
-        guard let maxVolume = klines.map(\.volume).max(), maxVolume > 0 else { return }
-        var baseline = Path()
-        baseline.move(to: CGPoint(x: plotRect.minX, y: plotRect.maxY))
-        baseline.addLine(to: CGPoint(x: plotRect.maxX, y: plotRect.maxY))
-        context.stroke(baseline, with: .color(Color.gridLine), lineWidth: 0.7)
-
-        let width = max(plotRect.width / CGFloat(klines.count), 1)
-        for (index, kline) in klines.enumerated() {
-            let x = plotRect.minX + CGFloat(index) * width + width / 2
-            let height = CGFloat(kline.volume / maxVolume) * plotRect.height
-            let rect = CGRect(
-                x: x - width * 0.32,
-                y: plotRect.maxY - height,
-                width: max(width * 0.64, 1),
-                height: max(height, 1)
-            )
-            let color = kline.close >= kline.open ? Color.upRed : Color.downGreen
-            context.fill(Path(rect), with: .color(color.opacity(0.68)))
-        }
-
-        let text = Text("成交量")
-            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-            .foregroundStyle(Color.textSecondary)
-        context.draw(text, at: CGPoint(x: plotRect.minX + 5, y: plotRect.minY + 5), anchor: .topLeading)
     }
 
     private func drawMACD(context: GraphicsContext, plotRect: CGRect, points: [MACDPoint]) {
@@ -511,34 +504,28 @@ struct CandleChart: View {
     }
 
     private func formatDate(_ date: Date, index: Int) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = index == 0 || index == klines.count - 1 ? "yyyy/MM" : "MM/dd"
-        return formatter.string(from: date)
+        formatAxisDate(date, globalIndex: index, totalCount: klines.count)
     }
 }
 
 struct VolumeChart: View {
     let klines: [KLine]
     let selectedIndex: Int?
-    let visibleStart: Int
-    let visibleCount: Int
-
-    private var visibleRange: Range<Int> {
-        guard !klines.isEmpty else { return 0..<0 }
-        let start = min(max(visibleStart, 0), max(klines.count - 1, 0))
-        let end = min(start + max(visibleCount, 1), klines.count)
-        return start..<end
-    }
-
-    private var localSelectedIndex: Int? {
-        guard let selectedIndex, visibleRange.contains(selectedIndex) else { return nil }
-        return selectedIndex - visibleRange.lowerBound
-    }
+    let globalStart: Int
+    let onSelect: (Int) -> Void
+    let onZoom: (CGFloat) -> Void
 
     var body: some View {
-        let visible = Array(klines[visibleRange])
-        BarChart(values: visible.map(\.volume), colors: visible.map { $0.close >= $0.open ? Color.upRed : Color.downGreen }, selectedIndex: localSelectedIndex)
+        BarChart(
+            values: klines.map(\.volume),
+            colors: klines.map { $0.close >= $0.open ? Color.upRed : Color.downGreen },
+            selectedIndex: selectedIndex,
+            dates: klines.map(\.date),
+            globalStart: globalStart,
+            label: "成交量",
+            onSelect: onSelect,
+            onZoom: onZoom
+        )
             .background(Color.chartBackground)
             .clipShape(RoundedRectangle(cornerRadius: 6))
     }
@@ -547,13 +534,26 @@ struct VolumeChart: View {
 struct MACDChart: View {
     let points: [MACDPoint]
     let selectedIndex: Int?
+    let dates: [Date]
+    let globalStart: Int
+    let onSelect: (Int) -> Void
+    let onZoom: (CGFloat) -> Void
 
     var body: some View {
         GeometryReader { _ in
-            BarChart(values: points.map(\.macd), colors: points.map { $0.macd >= 0 ? Color.upRed : Color.downGreen }, selectedIndex: selectedIndex)
+            BarChart(
+                values: points.map(\.macd),
+                colors: points.map { $0.macd >= 0 ? Color.upRed : Color.downGreen },
+                selectedIndex: selectedIndex,
+                dates: dates,
+                globalStart: globalStart,
+                label: "MACD",
+                onSelect: onSelect,
+                onZoom: onZoom
+            )
                 .overlay {
-                    LineChart(values: points.map(\.dif), color: .orange, selectedIndex: nil, reservesPriceAxis: true)
-                    LineChart(values: points.map(\.dea), color: .cyan, selectedIndex: nil, reservesPriceAxis: true)
+                    LineChart(values: points.map(\.dif), color: .orange, selectedIndex: nil, reservesDateAxis: true, reservesPriceAxis: true)
+                    LineChart(values: points.map(\.dea), color: .cyan, selectedIndex: nil, reservesDateAxis: true, reservesPriceAxis: true)
                 }
         }
         .background(Color.panelBackground)
@@ -565,29 +565,54 @@ struct BarChart: View {
     let values: [Double]
     let colors: [Color]
     let selectedIndex: Int?
+    var dates: [Date] = []
+    var globalStart: Int = 0
+    var label: String? = nil
+    var onSelect: ((Int) -> Void)? = nil
+    var onZoom: ((CGFloat) -> Void)? = nil
 
     var body: some View {
         GeometryReader { proxy in
             Canvas { context, size in
-                let plotRect = ChartGeometry.plotRect(size: size, reservesDateAxis: false)
+                let plotRect = ChartGeometry.plotRect(size: size, reservesDateAxis: true)
                 guard let maxValue = values.map(abs).max(), maxValue > 0 else {
                     drawEmptyState(context: context, size: size)
                     return
                 }
                 drawHorizontalGuide(context: context, plotRect: plotRect, allPositive: values.allSatisfy { $0 >= 0 })
-                let zero = size.height / 2
+                let zero = plotRect.midY
                 let allPositive = values.allSatisfy { $0 >= 0 }
-                let base = allPositive ? size.height : zero
+                let base = allPositive ? plotRect.maxY : zero
                 let width = max(plotRect.width / CGFloat(max(values.count, 1)), 1)
                 for (index, value) in values.enumerated() {
                     let h = CGFloat(abs(value) / maxValue) * (allPositive ? plotRect.height : plotRect.height / 2)
                     let y = value >= 0 ? base - h : base
-                    let rect = CGRect(x: CGFloat(index) * width, y: y, width: max(width * 0.72, 1), height: max(h, 1))
+                    let rect = CGRect(x: plotRect.minX + CGFloat(index) * width, y: y, width: max(width * 0.72, 1), height: max(h, 1))
                     context.fill(Path(rect), with: .color(colors[index].opacity(0.75)))
                 }
+                drawLabel(context: context, plotRect: plotRect)
                 drawSelection(context: context, plotRect: plotRect, count: values.count)
+                drawDateAxis(context: context, plotRect: plotRect)
             }
+            .contentShape(Rectangle())
+            .onContinuousHover { phase in
+                if case let .active(location) = phase {
+                    updateSelection(at: location.x, size: proxy.size)
+                }
+            }
+            .gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                updateSelection(at: value.location.x, size: proxy.size)
+            })
+            .background(ScrollWheelCaptureView { delta in
+                onZoom?(delta)
+            })
         }
+    }
+
+    private func updateSelection(at x: CGFloat, size: CGSize) {
+        let plotRect = ChartGeometry.plotRect(size: size, reservesDateAxis: true)
+        guard let index = ChartGeometry.indexForX(x, plotRect: plotRect, count: values.count) else { return }
+        onSelect?(index)
     }
 
     private func drawHorizontalGuide(context: GraphicsContext, plotRect: CGRect, allPositive: Bool) {
@@ -606,6 +631,37 @@ struct BarChart: View {
         context.stroke(path, with: .color(Color.white.opacity(0.36)), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
     }
 
+    private func drawDateAxis(context: GraphicsContext, plotRect: CGRect) {
+        guard !dates.isEmpty else { return }
+        var axis = Path()
+        axis.move(to: CGPoint(x: plotRect.minX, y: plotRect.maxY))
+        axis.addLine(to: CGPoint(x: plotRect.maxX, y: plotRect.maxY))
+        context.stroke(axis, with: .color(Color.gridLine.opacity(1.4)), lineWidth: 0.8)
+
+        let indices = ChartGeometry.dateTickIndices(count: dates.count, plotWidth: plotRect.width)
+        for localIndex in indices {
+            guard dates.indices.contains(localIndex),
+                  let x = ChartGeometry.xForIndex(localIndex, plotRect: plotRect, count: dates.count) else { continue }
+            var tick = Path()
+            tick.move(to: CGPoint(x: x, y: plotRect.maxY))
+            tick.addLine(to: CGPoint(x: x, y: plotRect.maxY + 4))
+            context.stroke(tick, with: .color(Color.gridLine), lineWidth: 0.7)
+            let text = Text(formatAxisDate(dates[localIndex], globalIndex: globalStart + localIndex, totalCount: dates.count))
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(Color.textSecondary)
+            let anchor: UnitPoint = localIndex == 0 ? .topLeading : (localIndex == dates.count - 1 ? .topTrailing : .top)
+            context.draw(text, at: CGPoint(x: x, y: plotRect.maxY + 7), anchor: anchor)
+        }
+    }
+
+    private func drawLabel(context: GraphicsContext, plotRect: CGRect) {
+        guard let label else { return }
+        let text = Text(label)
+            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+            .foregroundStyle(Color.textSecondary)
+        context.draw(text, at: CGPoint(x: plotRect.minX + 5, y: plotRect.minY + 5), anchor: .topLeading)
+    }
+
     private func drawEmptyState(context: GraphicsContext, size: CGSize) {
         let text = Text("暂无数据")
             .font(.system(size: 12, weight: .semibold))
@@ -618,12 +674,13 @@ struct LineChart: View {
     let values: [Double]
     let color: Color
     var selectedIndex: Int? = nil
+    var reservesDateAxis: Bool = false
     var reservesPriceAxis: Bool = false
 
     var body: some View {
         GeometryReader { _ in
             Canvas { context, size in
-                let plotRect = ChartGeometry.plotRect(size: size, reservesDateAxis: false, reservesPriceAxis: reservesPriceAxis)
+                let plotRect = ChartGeometry.plotRect(size: size, reservesDateAxis: reservesDateAxis, reservesPriceAxis: reservesPriceAxis)
                 guard values.count > 1, let minValue = values.min(), let maxValue = values.max(), maxValue != minValue else { return }
                 var path = Path()
                 for (index, value) in values.enumerated() {
@@ -660,6 +717,41 @@ struct Sparkline: View {
             .background(Color.chartBackground.opacity(0.35))
             .clipShape(RoundedRectangle(cornerRadius: 4))
     }
+}
+
+struct ScrollWheelCaptureView: NSViewRepresentable {
+    let onScroll: (CGFloat) -> Void
+
+    func makeNSView(context: Context) -> ScrollWheelView {
+        let view = ScrollWheelView()
+        view.onScroll = onScroll
+        return view
+    }
+
+    func updateNSView(_ nsView: ScrollWheelView, context: Context) {
+        nsView.onScroll = onScroll
+    }
+
+    final class ScrollWheelView: NSView {
+        var onScroll: ((CGFloat) -> Void)?
+
+        override var acceptsFirstResponder: Bool { true }
+
+        override func scrollWheel(with event: NSEvent) {
+            onScroll?(event.scrollingDeltaY)
+        }
+    }
+}
+
+private func formatAxisDate(_ date: Date, globalIndex: Int, totalCount: Int) -> String {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "zh_CN")
+    formatter.dateFormat = globalIndex == 0 || globalIndex == totalCount - 1 ? "yyyy/MM" : "MM/dd"
+    return formatter.string(from: date)
+}
+
+private func y(_ value: Double, min: Double, max: Double, plotRect: CGRect) -> CGFloat {
+    plotRect.maxY - CGFloat((value - min) / (max - min)) * plotRect.height
 }
 
 private extension Color {
