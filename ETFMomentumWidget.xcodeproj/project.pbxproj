@@ -10,9 +10,11 @@
 		2C11B893625DFBFB75DF6960 /* ETFMomentumApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C623568223150D94BC330513 /* ETFMomentumApp.swift */; };
 		2CCCD1E665D02374E49E4506 /* RankingParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46FA7B925A379A1F48D2ED9E /* RankingParityTests.swift */; };
 		33AF1076612B2D227E573FF9 /* Charts.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBFC24949CF858D722F157FD /* Charts.swift */; };
+		3AD91CE80F4B4F82A0CE558B /* ChartGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2F018D14914D1B9BCA10E9 /* ChartGeometryTests.swift */; };
 		4191BB1A201DB9D2B8844608 /* TencentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D279E26F271D101B7F8FE19 /* TencentProvider.swift */; };
 		41DA2B0D68C0AB26FA635053 /* DefaultETFPool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B2CB17E1F82C74A5D4E78B /* DefaultETFPool.swift */; };
 		428DB3F582097E69603824A3 /* DataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8AF4F6CB3208D48DC0AFC5 /* DataProvider.swift */; };
+		4536864237EE4A44A0E577C8 /* ChartGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9725523778EF41C6940459EC /* ChartGeometry.swift */; };
 		470DE8D0C5F99A42EBF14941 /* ETFMomentumWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2E2146485D28753EE02CA657 /* ETFMomentumWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		47EC9B0FB841EE6AFEBC06EF /* ETFMomentumCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAC5AA6B65089E97B679886 /* ETFMomentumCore.framework */; };
 		550021D47DEBBF98AF7C263F /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF2B7A394800265739ACABD /* Store.swift */; };
@@ -85,10 +87,12 @@
 		4BAC7BB2D1DA62F5DD782812 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		5C8AF4F6CB3208D48DC0AFC5 /* DataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataProvider.swift; sourceTree = "<group>"; };
 		5D279E26F271D101B7F8FE19 /* TencentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TencentProvider.swift; sourceTree = "<group>"; };
+		5E2F018D14914D1B9BCA10E9 /* ChartGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartGeometryTests.swift; sourceTree = "<group>"; };
 		7CF2B7A394800265739ACABD /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
 		81DFED945E3403CCC17F612D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		8DAAF9C18C292B53E38A80D9 /* WidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetView.swift; sourceTree = "<group>"; };
 		9DD5B571342CC70475D3E1AB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		9725523778EF41C6940459EC /* ChartGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartGeometry.swift; sourceTree = "<group>"; };
 		BB380FC78F43958890AE53F2 /* AKShareProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AKShareProvider.swift; sourceTree = "<group>"; };
 		C623568223150D94BC330513 /* ETFMomentumApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ETFMomentumApp.swift; sourceTree = "<group>"; };
 		EBFC24949CF858D722F157FD /* Charts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Charts.swift; sourceTree = "<group>"; };
@@ -139,6 +143,7 @@
 			isa = PBXGroup;
 			children = (
 				BB380FC78F43958890AE53F2 /* AKShareProvider.swift */,
+				9725523778EF41C6940459EC /* ChartGeometry.swift */,
 				5C8AF4F6CB3208D48DC0AFC5 /* DataProvider.swift */,
 				01B2CB17E1F82C74A5D4E78B /* DefaultETFPool.swift */,
 				3AF80E9C67E13B9E84051698 /* Math.swift */,
@@ -166,6 +171,7 @@
 		8A00237D8591E782E24437E2 /* ETFMomentumCoreTests */ = {
 			isa = PBXGroup;
 			children = (
+				5E2F018D14914D1B9BCA10E9 /* ChartGeometryTests.swift */,
 				46FA7B925A379A1F48D2ED9E /* RankingParityTests.swift */,
 			);
 			name = ETFMomentumCoreTests;
@@ -357,6 +363,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BC91BB6D08A9C3E69FF97BF1 /* AKShareProvider.swift in Sources */,
+				4536864237EE4A44A0E577C8 /* ChartGeometry.swift in Sources */,
 				428DB3F582097E69603824A3 /* DataProvider.swift in Sources */,
 				41DA2B0D68C0AB26FA635053 /* DefaultETFPool.swift in Sources */,
 				A0A3C7EC5347D21A8B84DB60 /* Math.swift in Sources */,
@@ -371,6 +378,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3AD91CE80F4B4F82A0CE558B /* ChartGeometryTests.swift in Sources */,
 				2CCCD1E665D02374E49E4506 /* RankingParityTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

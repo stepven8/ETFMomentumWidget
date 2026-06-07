@@ -1,0 +1,55 @@
+import CoreGraphics
+import Testing
+@testable import ETFMomentumCore
+
+@Test func hoverIndexClampsToChartBounds() {
+    let plotRect = CGRect(x: 0, y: 0, width: 100, height: 80)
+
+    #expect(ChartGeometry.indexForX(-20, plotRect: plotRect, count: 10) == 0)
+    #expect(ChartGeometry.indexForX(0, plotRect: plotRect, count: 10) == 0)
+    #expect(ChartGeometry.indexForX(99.9, plotRect: plotRect, count: 10) == 9)
+    #expect(ChartGeometry.indexForX(140, plotRect: plotRect, count: 10) == 9)
+}
+
+@Test func hoverIndexMapsMiddlePositionsToExpectedCandle() {
+    let plotRect = CGRect(x: 0, y: 0, width: 100, height: 80)
+
+    #expect(ChartGeometry.indexForX(10, plotRect: plotRect, count: 10) == 1)
+    #expect(ChartGeometry.indexForX(49.9, plotRect: plotRect, count: 10) == 4)
+    #expect(ChartGeometry.indexForX(50, plotRect: plotRect, count: 10) == 5)
+}
+
+@Test func hoverIndexHandlesEmptyAndSingleCandleData() {
+    let plotRect = CGRect(x: 0, y: 0, width: 100, height: 80)
+
+    #expect(ChartGeometry.indexForX(50, plotRect: plotRect, count: 0) == nil)
+    #expect(ChartGeometry.indexForX(-100, plotRect: plotRect, count: 1) == 0)
+    #expect(ChartGeometry.indexForX(100, plotRect: plotRect, count: 1) == 0)
+}
+
+@Test func xForIndexReturnsCandleCentersAndClamps() {
+    let plotRect = CGRect(x: 0, y: 0, width: 100, height: 80)
+
+    #expect(ChartGeometry.xForIndex(0, plotRect: plotRect, count: 10) == 5)
+    #expect(ChartGeometry.xForIndex(9, plotRect: plotRect, count: 10) == 95)
+    #expect(ChartGeometry.xForIndex(-5, plotRect: plotRect, count: 10) == 5)
+    #expect(ChartGeometry.xForIndex(99, plotRect: plotRect, count: 10) == 95)
+    #expect(ChartGeometry.xForIndex(0, plotRect: plotRect, count: 0) == nil)
+}
+
+@Test func dateTicksStayUniqueAndInsideDataBounds() {
+    let ticks = ChartGeometry.dateTickIndices(count: 260, plotWidth: 700)
+
+    #expect(ticks.count >= 5)
+    #expect(ticks.count <= 7)
+    #expect(ticks == Array(Set(ticks)).sorted())
+    #expect(ticks.first == 0)
+    #expect(ticks.last == 259)
+}
+
+@Test func plotRectReservesAxesWithoutCollapsing() {
+    let rect = ChartGeometry.plotRect(size: CGSize(width: 400, height: 320), reservesDateAxis: true)
+
+    #expect(rect.width == 346)
+    #expect(rect.height == 296)
+}
