@@ -282,8 +282,8 @@ struct MACDChart: View {
         GeometryReader { _ in
             BarChart(values: points.map(\.macd), colors: points.map { $0.macd >= 0 ? Color.upRed : Color.downGreen }, selectedIndex: selectedIndex)
                 .overlay {
-                    LineChart(values: points.map(\.dif), color: .orange, selectedIndex: nil)
-                    LineChart(values: points.map(\.dea), color: .cyan, selectedIndex: nil)
+                    LineChart(values: points.map(\.dif), color: .orange, selectedIndex: nil, reservesPriceAxis: true)
+                    LineChart(values: points.map(\.dea), color: .cyan, selectedIndex: nil, reservesPriceAxis: true)
                 }
         }
         .background(Color.panelBackground)
@@ -348,11 +348,12 @@ struct LineChart: View {
     let values: [Double]
     let color: Color
     var selectedIndex: Int? = nil
+    var reservesPriceAxis: Bool = false
 
     var body: some View {
         GeometryReader { _ in
             Canvas { context, size in
-                let plotRect = ChartGeometry.plotRect(size: size, reservesDateAxis: false)
+                let plotRect = ChartGeometry.plotRect(size: size, reservesDateAxis: false, reservesPriceAxis: reservesPriceAxis)
                 guard values.count > 1, let minValue = values.min(), let maxValue = values.max(), maxValue != minValue else { return }
                 var path = Path()
                 for (index, value) in values.enumerated() {

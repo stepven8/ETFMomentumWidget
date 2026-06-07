@@ -4,12 +4,13 @@ public enum ChartGeometry {
     public static let priceAxisWidth: CGFloat = 54
     public static let dateAxisHeight: CGFloat = 24
 
-    public static func plotRect(size: CGSize, reservesDateAxis: Bool) -> CGRect {
+    public static func plotRect(size: CGSize, reservesDateAxis: Bool, reservesPriceAxis: Bool = true) -> CGRect {
         let height = reservesDateAxis ? size.height - dateAxisHeight : size.height
+        let width = reservesPriceAxis ? size.width - priceAxisWidth : size.width
         return CGRect(
             x: 0,
             y: 0,
-            width: max(size.width - priceAxisWidth, 1),
+            width: max(width, 1),
             height: max(height, 1)
         )
     }

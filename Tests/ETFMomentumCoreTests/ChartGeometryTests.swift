@@ -53,3 +53,10 @@ import Testing
     #expect(rect.width == 346)
     #expect(rect.height == 296)
 }
+
+@Test func plotRectCanUseFullWidthForSparklines() {
+    let rect = ChartGeometry.plotRect(size: CGSize(width: 48, height: 22), reservesDateAxis: false, reservesPriceAxis: false)
+
+    #expect(rect.width == 48)
+    #expect(rect.height == 22)
+}
