@@ -540,24 +540,132 @@ struct MACDChart: View {
     let onZoom: (CGFloat) -> Void
 
     var body: some View {
-        GeometryReader { _ in
-            BarChart(
-                values: points.map(\.macd),
-                colors: points.map { $0.macd >= 0 ? Color.upRed : Color.downGreen },
-                selectedIndex: selectedIndex,
-                dates: dates,
-                globalStart: globalStart,
-                label: "MACD",
-                onSelect: onSelect,
-                onZoom: onZoom
-            )
-                .overlay {
-                    LineChart(values: points.map(\.dif), color: .orange, selectedIndex: nil, reservesDateAxis: true, reservesPriceAxis: true)
-                    LineChart(values: points.map(\.dea), color: .cyan, selectedIndex: nil, reservesDateAxis: true, reservesPriceAxis: true)
+        GeometryReader { proxy in
+            Canvas { context, size in
+                let plotRect = ChartGeometry.plotRect(size: size, reservesDateAxis: true)
+                guard points.count > 1 else {
+                    drawEmptyState(context: context, size: size)
+                    return
                 }
+                guard let range = ChartGeometry.symmetricRange(values: points.flatMap { [$0.macd, $0.dif, $0.dea] }) else {
+                    drawEmptyState(context: context, size: size)
+                    return
+                }
+                let minValue = range.min
+                let maxValue = range.max
+                drawZeroLine(context: context, plotRect: plotRect, minValue: minValue, maxValue: maxValue)
+                drawMACDBars(context: context, plotRect: plotRect, minValue: minValue, maxValue: maxValue)
+                drawLine(context: context, values: points.map(\.dif), color: .orange, plotRect: plotRect, minValue: minValue, maxValue: maxValue)
+                drawLine(context: context, values: points.map(\.dea), color: .cyan, plotRect: plotRect, minValue: minValue, maxValue: maxValue)
+                drawLabel(context: context, plotRect: plotRect)
+                drawSelection(context: context, plotRect: plotRect)
+                drawDateAxis(context: context, plotRect: plotRect)
+            }
+            .contentShape(Rectangle())
+            .onContinuousHover { phase in
+                if case let .active(location) = phase {
+                    updateSelection(at: location.x, size: proxy.size)
+                }
+            }
+            .gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                updateSelection(at: value.location.x, size: proxy.size)
+            })
+            .background(ScrollWheelCaptureView { delta in
+                onZoom(delta)
+            })
         }
         .background(Color.panelBackground)
         .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+
+    private func updateSelection(at x: CGFloat, size: CGSize) {
+        let plotRect = ChartGeometry.plotRect(size: size, reservesDateAxis: true)
+        guard let index = ChartGeometry.indexForX(x, plotRect: plotRect, count: points.count) else { return }
+        onSelect(index)
+    }
+
+    private func drawZeroLine(context: GraphicsContext, plotRect: CGRect, minValue: Double, maxValue: Double) {
+        let zeroY = y(0, min: minValue, max: maxValue, plotRect: plotRect)
+        var path = Path()
+        path.move(to: CGPoint(x: plotRect.minX, y: zeroY))
+        path.addLine(to: CGPoint(x: plotRect.maxX, y: zeroY))
+        context.stroke(path, with: .color(Color.gridLine), lineWidth: 0.7)
+    }
+
+    private func drawMACDBars(context: GraphicsContext, plotRect: CGRect, minValue: Double, maxValue: Double) {
+        let zeroY = y(0, min: minValue, max: maxValue, plotRect: plotRect)
+        let width = max(plotRect.width / CGFloat(points.count), 1)
+        for (index, point) in points.enumerated() {
+            let barY = y(point.macd, min: minValue, max: maxValue, plotRect: plotRect)
+            let rect = CGRect(
+                x: plotRect.minX + CGFloat(index) * width,
+                y: min(zeroY, barY),
+                width: max(width * 0.72, 1),
+                height: max(abs(barY - zeroY), 1)
+            )
+            let color = point.macd >= 0 ? Color.upRed : Color.downGreen
+            context.fill(Path(rect), with: .color(color.opacity(0.70)))
+        }
+    }
+
+    private func drawLine(context: GraphicsContext, values: [Double], color: Color, plotRect: CGRect, minValue: Double, maxValue: Double) {
+        var path = Path()
+        for (index, value) in values.enumerated() {
+            guard let x = ChartGeometry.xForIndex(index, plotRect: plotRect, count: values.count) else { continue }
+            let point = CGPoint(x: x, y: y(value, min: minValue, max: maxValue, plotRect: plotRect))
+            if index == 0 {
+                path.move(to: point)
+            } else {
+                path.addLine(to: point)
+            }
+        }
+        context.stroke(path, with: .color(color), lineWidth: 1.25)
+    }
+
+    private func drawSelection(context: GraphicsContext, plotRect: CGRect) {
+        guard let selectedIndex,
+              let x = ChartGeometry.xForIndex(selectedIndex, plotRect: plotRect, count: points.count) else { return }
+        var path = Path()
+        path.move(to: CGPoint(x: x, y: plotRect.minY))
+        path.addLine(to: CGPoint(x: x, y: plotRect.maxY))
+        context.stroke(path, with: .color(Color.white.opacity(0.36)), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+    }
+
+    private func drawDateAxis(context: GraphicsContext, plotRect: CGRect) {
+        guard !dates.isEmpty else { return }
+        var axis = Path()
+        axis.move(to: CGPoint(x: plotRect.minX, y: plotRect.maxY))
+        axis.addLine(to: CGPoint(x: plotRect.maxX, y: plotRect.maxY))
+        context.stroke(axis, with: .color(Color.gridLine.opacity(1.4)), lineWidth: 0.8)
+
+        let indices = ChartGeometry.dateTickIndices(count: dates.count, plotWidth: plotRect.width)
+        for localIndex in indices {
+            guard dates.indices.contains(localIndex),
+                  let x = ChartGeometry.xForIndex(localIndex, plotRect: plotRect, count: dates.count) else { continue }
+            var tick = Path()
+            tick.move(to: CGPoint(x: x, y: plotRect.maxY))
+            tick.addLine(to: CGPoint(x: x, y: plotRect.maxY + 4))
+            context.stroke(tick, with: .color(Color.gridLine), lineWidth: 0.7)
+            let text = Text(formatAxisDate(dates[localIndex], globalIndex: globalStart + localIndex, totalCount: dates.count))
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(Color.textSecondary)
+            let anchor: UnitPoint = localIndex == 0 ? .topLeading : (localIndex == dates.count - 1 ? .topTrailing : .top)
+            context.draw(text, at: CGPoint(x: x, y: plotRect.maxY + 7), anchor: anchor)
+        }
+    }
+
+    private func drawLabel(context: GraphicsContext, plotRect: CGRect) {
+        let text = Text("MACD")
+            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+            .foregroundStyle(Color.textSecondary)
+        context.draw(text, at: CGPoint(x: plotRect.minX + 5, y: plotRect.minY + 5), anchor: .topLeading)
+    }
+
+    private func drawEmptyState(context: GraphicsContext, size: CGSize) {
+        let text = Text("暂无数据")
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(Color.textSecondary)
+        context.draw(text, at: CGPoint(x: size.width / 2, y: size.height / 2), anchor: .center)
     }
 }
 

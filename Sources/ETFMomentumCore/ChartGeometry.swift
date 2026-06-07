@@ -42,4 +42,11 @@ public enum ChartGeometry {
         }
         return Array(Set(indices)).sorted()
     }
+
+    public static func symmetricRange(values: [Double]) -> (min: Double, max: Double)? {
+        guard let low = values.min(), let high = values.max() else { return nil }
+        let maxAbs = max(abs(low), abs(high))
+        guard maxAbs > 0 else { return nil }
+        return (-maxAbs, maxAbs)
+    }
 }

@@ -60,3 +60,15 @@ import Testing
     #expect(rect.width == 48)
     #expect(rect.height == 22)
 }
+
+@Test func macdRangeUsesAllSeriesOnOneSymmetricAxis() {
+    let range = ChartGeometry.symmetricRange(values: [-0.12, 0.08, 0.02, 0.15, -0.04, 0.03])
+
+    #expect(range?.min == -0.15)
+    #expect(range?.max == 0.15)
+}
+
+@Test func symmetricRangeRejectsEmptyOrFlatZeroValues() {
+    #expect(ChartGeometry.symmetricRange(values: []) == nil)
+    #expect(ChartGeometry.symmetricRange(values: [0, 0, 0]) == nil)
+}
