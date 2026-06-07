@@ -33,14 +33,28 @@ struct SettingsView: View {
                 numberField("溢价阈值", value: $store.config.premiumThreshold)
             }
             Section("ETF 股票池") {
-                ForEach($store.etfs) { $etf in
+                ForEach(store.etfs.indices, id: \.self) { index in
                     HStack {
-                        Toggle("", isOn: $etf.enabled)
+                        Toggle("", isOn: $store.etfs[index].enabled)
                             .labelsHidden()
-                        TextField("代码", text: $etf.code)
+                            .disabled(store.isRefreshing)
+                        TextField("代码", text: $store.etfs[index].code)
                             .font(.system(.body, design: .monospaced))
                             .frame(width: 130)
-                        TextField("名称", text: $etf.name)
+                            .textFieldStyle(.roundedBorder)
+                            .disabled(store.isRefreshing)
+                        TextField("名称", text: $store.etfs[index].name)
+                            .textFieldStyle(.roundedBorder)
+                            .disabled(store.isRefreshing)
+                        Button {
+                            deleteETF(at: index)
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(Color.warningText)
+                        .help("删除 ETF")
+                        .disabled(store.isRefreshing)
                     }
                 }
                 Button {
@@ -48,6 +62,7 @@ struct SettingsView: View {
                 } label: {
                     Label("新增 ETF", systemImage: "plus")
                 }
+                .disabled(store.isRefreshing)
             }
             Button {
                 saveAndRefresh()
@@ -86,6 +101,12 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    private func deleteETF(at index: Int) {
+        guard store.etfs.indices.contains(index) else { return }
+        store.etfs.remove(at: index)
+        saveMessage = "ETF 已删除，点击保存设置后生效"
     }
 
     private func numberField(_ title: String, value: Binding<Double>) -> some View {
