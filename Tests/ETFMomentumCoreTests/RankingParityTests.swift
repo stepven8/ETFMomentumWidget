@@ -116,9 +116,44 @@ import Testing
     #expect(snapshot?.metrics.first { $0.etf.code == disabled.code }?.filterReason == .disabled)
 }
 
+@Test func reenabledETFWaitsForRefreshInsteadOfShowingCalculationError() async throws {
+    let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)
+    let store = await AppStore(directory: directory)
+    let enabled = ETF(code: "513880.XSHG", name: "日经225ETF华安", enabled: true)
+    let disabled = ETF(code: "513520.XSHG", name: "日经ETF华夏", enabled: false)
+
+    try await MainActor.run {
+        store.etfs = [enabled, disabled]
+        try store.saveSnapshot(RankingSnapshot(metrics: [
+            RankingMetric(etf: enabled, score: 2, filterReason: .included),
+            RankingMetric(etf: disabled, filterReason: .disabled)
+        ]))
+        store.etfs[1].enabled = true
+        try store.saveConfigAndPool()
+    }
+
+    let snapshot = await store.snapshot
+    #expect(snapshot?.metrics.first { $0.etf.code == disabled.code }?.filterReason == .pendingRefresh)
+}
+
+@Test func rankingContinuesWhenOptionalPremiumAndVolumeDataFail() async {
+    let config = StrategyConfig(
+        enableVolumeCheck: true,
+        useShortMomentumFilter: false,
+        enableProfitProtection: false,
+        enablePremiumFilter: true
+    )
+    let provider = OptionalDataFailingProvider()
+    let metric = await RankingEngine(config: config, provider: provider, now: { fixtureNow }).calculate(etf: FixtureProvider.etfs[0])
+
+    #expect(metric.filterReason == .included)
+    #expect(metric.score > 0)
+}
+
 private let fixtureNow = ISO8601DateFormatter().date(from: "2026-06-05T06:00:00Z")!
 
-private final class FixtureProvider: MarketDataProvider, @unchecked Sendable {
+private class FixtureProvider: MarketDataProvider, @unchecked Sendable {
     static let etfs = [
         ETF(code: "510300.XSHG", name: "沪深300ETF华泰柏瑞"),
         ETF(code: "159915.XSHE", name: "创业板ETF易方达"),
@@ -200,5 +235,15 @@ private final class HangingProvider: MarketDataProvider, @unchecked Sendable {
 
     func previousTradingDate(beforeOrOn date: Date) async -> Date {
         date
+    }
+}
+
+private final class OptionalDataFailingProvider: FixtureProvider, @unchecked Sendable {
+    override func minuteVolumeSumToday(for etf: ETF, now: Date) async throws -> Double? {
+        throw MarketDataError.missingData
+    }
+
+    override func premiumInfo(for etf: ETF, previousTradingDate: Date) async throws -> PremiumInfo {
+        throw MarketDataError.missingData
     }
 }

@@ -71,11 +71,11 @@ public final class AppStore: ObservableObject {
             if etf.enabled, var metric = metricsByCode.removeValue(forKey: etf.code) {
                 metric.etf = ETF(code: etf.code, name: metric.etf.name.isEmpty ? etf.name : metric.etf.name, enabled: true)
                 if metric.filterReason == .disabled {
-                    metric.filterReason = .calculationError
+                    metric.filterReason = .pendingRefresh
                 }
                 next.append(metric)
             } else if etf.enabled {
-                next.append(RankingMetric(etf: etf, filterReason: .calculationError))
+                next.append(RankingMetric(etf: etf, filterReason: .pendingRefresh))
             } else {
                 next.append(RankingMetric(etf: etf, filterReason: .disabled))
             }

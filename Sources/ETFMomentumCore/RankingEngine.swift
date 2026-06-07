@@ -76,16 +76,17 @@ public struct RankingEngine: Sendable {
             var premiumValue: Double?
             if config.enablePremiumFilter {
                 let prevDate = await provider.previousTradingDate(beforeOrOn: now())
-                let premium = try await provider.premiumInfo(for: etf, previousTradingDate: prevDate)
-                premiumValue = premium.premium
-                if let value = premium.premium, value > config.premiumThreshold {
-                    return RankingMetric(etf: named(etf, quote: quote), currentPrice: quote.lastPrice, pctChange: quote.pctChange, filterReason: .premiumExceeded, premium: value, closes: priceSeries)
+                if let premium = try? await provider.premiumInfo(for: etf, previousTradingDate: prevDate) {
+                    premiumValue = premium.premium
+                    if let value = premium.premium, value > config.premiumThreshold {
+                        return RankingMetric(etf: named(etf, quote: quote), currentPrice: quote.lastPrice, pctChange: quote.pctChange, filterReason: .premiumExceeded, premium: value, closes: priceSeries)
+                    }
                 }
             }
 
             var ratioValue: Double?
             if config.enableVolumeCheck {
-                let ratio = try await volumeRatio(etf: etf, dailyPrices: prices)
+                let ratio = try? await volumeRatio(etf: etf, dailyPrices: prices)
                 ratioValue = ratio
                 if ratio != nil {
                     let annualized = MomentumMath.annualizedReturn(priceSeries: priceSeries, lookbackDays: config.lookbackDays)

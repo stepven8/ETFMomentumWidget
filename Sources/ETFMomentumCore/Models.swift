@@ -154,6 +154,7 @@ public enum FilterReason: String, Codable, Sendable {
     case shortMomentumWeak = "短期动量不足"
     case recentLossExceeded = "近三日单日跌幅超限"
     case scoreOutOfRange = "分数阈值外"
+    case pendingRefresh = "等待重新计算"
     case calculationError = "计算异常"
 }
 
