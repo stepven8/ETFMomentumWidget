@@ -70,11 +70,6 @@ struct ContentView: View {
                 .buttonStyle(HeaderActionButtonStyle())
                 .disabled(store.isRefreshing)
             }
-            if let refreshMessage = store.refreshMessage {
-                Text(refreshMessage)
-                    .font(.system(size: 11.5, weight: .medium))
-                    .foregroundStyle(refreshMessage.contains("失败") || refreshMessage.contains("超时") ? Color.warningText : Color.textSecondary)
-            }
             TopFiveStrip(metrics: Array((store.snapshot?.included ?? []).prefix(5)))
         }
         .padding(.horizontal, 18)
