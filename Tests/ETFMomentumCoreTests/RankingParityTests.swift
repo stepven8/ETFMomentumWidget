@@ -116,6 +116,29 @@ import Testing
     #expect(snapshot?.metrics.first { $0.etf.code == disabled.code }?.filterReason == .disabled)
 }
 
+@Test func disablingETFRemovesStaleRankAndScoreFromSnapshot() async throws {
+    let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)
+    let store = await AppStore(directory: directory)
+    let etf = ETF(code: "513880.XSHG", name: "日经225ETF华安", enabled: false)
+
+    try await MainActor.run {
+        store.etfs = [etf]
+        try store.saveSnapshot(RankingSnapshot(metrics: [
+            RankingMetric(etf: ETF(code: etf.code, name: etf.name), annualizedReturns: 3.5, rSquared: 0.6, score: 2.3, currentPrice: 2.153, shortAnnualized: 1.6, pctChange: -2.97, filterReason: .included, closes: [1, 2])
+        ]))
+        try store.saveConfigAndPool()
+    }
+
+    let metric = await store.snapshot?.metrics.first { $0.etf.code == etf.code }
+    #expect(metric?.filterReason == .disabled)
+    #expect(metric?.score == 0)
+    #expect(metric?.currentPrice == 0)
+    #expect(metric?.pctChange == 0)
+    #expect(metric?.closes.isEmpty == true)
+    #expect(metric?.etf.enabled == false)
+}
+
 @Test func reenabledETFWaitsForRefreshInsteadOfShowingCalculationError() async throws {
     let directory = URL(fileURLWithPath: NSTemporaryDirectory())
         .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)

@@ -77,7 +77,7 @@ public final class AppStore: ObservableObject {
             } else if etf.enabled {
                 next.append(RankingMetric(etf: etf, filterReason: .pendingRefresh))
             } else {
-                next.append(RankingMetric(etf: etf, filterReason: .disabled))
+                next.append(disabledMetric(for: etf))
             }
         }
 
@@ -89,6 +89,10 @@ public final class AppStore: ObservableObject {
         let filtered = next.filter { $0.filterReason != .included }
         self.snapshot = RankingSnapshot(generatedAt: snapshot.generatedAt, metrics: included + filtered)
         try? encoder.encode(self.snapshot).write(to: directory.appendingPathComponent("snapshot.json"), options: .atomic)
+    }
+
+    private func disabledMetric(for etf: ETF) -> RankingMetric {
+        RankingMetric(etf: ETF(code: etf.code, name: etf.name, enabled: false), filterReason: .disabled)
     }
 
     public func refresh(provider: any MarketDataProvider = FallbackMarketDataProvider(), timeoutSeconds: UInt64 = 90) async -> Bool {
