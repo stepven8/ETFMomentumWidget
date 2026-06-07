@@ -24,6 +24,8 @@ public final class AppStore: ObservableObject {
     @Published public var config: StrategyConfig
     @Published public var etfs: [ETF]
     @Published public var snapshot: RankingSnapshot?
+    @Published public var isRefreshing = false
+    @Published public var refreshMessage: String?
 
     private let directory: URL
     private let encoder = JSONEncoder()
@@ -96,6 +98,10 @@ public final class AppStore: ObservableObject {
     }
 
     public func refresh(provider: any MarketDataProvider = FallbackMarketDataProvider(), timeoutSeconds: UInt64 = 90) async -> Bool {
+        isRefreshing = true
+        refreshMessage = "正在更新动量排行..."
+        defer { isRefreshing = false }
+
         let config = config
         let etfs = etfs
         let next = await withCheckedContinuation { continuation in
@@ -116,12 +122,15 @@ public final class AppStore: ObservableObject {
         }
 
         guard let next else {
+            refreshMessage = "更新失败或超时，请稍后重试"
             return false
         }
         do {
             try saveSnapshot(next)
+            refreshMessage = "更新完成 \(next.generatedAt.formatted(date: .omitted, time: .standard))"
             return true
         } catch {
+            refreshMessage = "更新失败或超时，请稍后重试"
             return false
         }
     }

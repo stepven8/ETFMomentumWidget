@@ -160,6 +160,8 @@ public enum FilterReason: String, Codable, Sendable {
 
 public struct RankingMetric: Codable, Identifiable, Sendable {
     public var id: String { etf.code }
+    public var includedRowID: String { "included-\(etf.code)" }
+    public var filteredRowID: String { "filtered-\(etf.code)-\(filterReason.rawValue)" }
     public var etf: ETF
     public var annualizedReturns: Double
     public var rSquared: Double

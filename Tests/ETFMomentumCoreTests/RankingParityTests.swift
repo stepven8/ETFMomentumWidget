@@ -95,6 +95,26 @@ import Testing
     #expect(succeeded == false)
 }
 
+@Test func appStoreRefreshMessageUsesSnapshotGeneratedAt() async {
+    let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)
+    let store = await AppStore(directory: directory)
+    await MainActor.run {
+        store.etfs = [FixtureProvider.etfs[0]]
+    }
+
+    let succeeded = await store.refresh(provider: FixtureProvider())
+    let snapshotDate = await store.snapshot?.generatedAt
+    let message = await store.refreshMessage
+
+    #expect(succeeded == true)
+    #expect(snapshotDate != nil)
+    if let snapshotDate {
+        #expect(message?.contains(snapshotDate.formatted(date: .omitted, time: .standard)) == true)
+    }
+    #expect(await store.isRefreshing == false)
+}
+
 @Test func savingDisabledETFImmediatelyUpdatesCachedRanking() async throws {
     let directory = URL(fileURLWithPath: NSTemporaryDirectory())
         .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)

@@ -5,8 +5,6 @@ struct ContentView: View {
     @EnvironmentObject private var store: AppStore
     @State private var selectedETF: ETF?
     @State private var selectedTab: Panel = .ranking
-    @State private var isRefreshing = false
-    @State private var refreshMessage: String?
     @State private var detailKLines: [KLine] = []
 
     enum Panel: String, CaseIterable {
@@ -61,12 +59,12 @@ struct ContentView: View {
                 Button {
                     refresh()
                 } label: {
-                    Label(isRefreshing ? "更新中" : "手动更新", systemImage: "arrow.clockwise")
+                    Label(store.isRefreshing ? "更新中" : "手动更新", systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(isRefreshing)
+                .disabled(store.isRefreshing)
             }
-            if let refreshMessage {
+            if let refreshMessage = store.refreshMessage {
                 Text(refreshMessage)
                     .font(.system(size: 11.5, weight: .medium))
                     .foregroundStyle(refreshMessage.contains("失败") || refreshMessage.contains("超时") ? Color.warningText : Color.textSecondary)
@@ -96,14 +94,13 @@ struct ContentView: View {
     }
 
     private func refresh() {
-        isRefreshing = true
-        refreshMessage = "正在更新动量排行..."
         Task {
             let success = await store.refresh()
             await MainActor.run {
-                isRefreshing = false
                 selectedTab = .ranking
-                refreshMessage = success ? "更新完成 \(Date().formatted(date: .omitted, time: .standard))" : "更新失败或超时，请稍后重试"
+                if success, let generatedAt = store.snapshot?.generatedAt {
+                    store.refreshMessage = "更新完成 \(generatedAt.formatted(date: .omitted, time: .standard))"
+                }
             }
         }
     }
@@ -117,7 +114,7 @@ struct RankingList: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 8, pinnedViews: []) {
                 SectionHeader(title: "入选排行")
-                ForEach(Array((store.snapshot?.included ?? []).enumerated()), id: \.element.etf.code) { index, metric in
+                ForEach(Array((store.snapshot?.included ?? []).enumerated()), id: \.element.includedRowID) { index, metric in
                     RankingRow(index: index + 1, metric: metric, isSelected: selectedETF?.code == metric.etf.code)
                         .contentShape(Rectangle())
                         .onTapGesture {
@@ -125,7 +122,7 @@ struct RankingList: View {
                         }
                 }
                 SectionHeader(title: "过滤明细")
-                ForEach((store.snapshot?.metrics ?? []).filter { $0.filterReason != .included }) { metric in
+                ForEach((store.snapshot?.metrics ?? []).filter { $0.filterReason != .included }, id: \.filteredRowID) { metric in
                     RankingRow(index: nil, metric: metric, isSelected: selectedETF?.code == metric.etf.code)
                         .contentShape(Rectangle())
                         .onTapGesture {
