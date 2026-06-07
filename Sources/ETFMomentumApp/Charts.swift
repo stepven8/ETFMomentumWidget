@@ -256,6 +256,7 @@ struct CandleChart: View {
     @Binding var selectedIndex: Int?
     @Binding var visibleStart: Int
     @Binding var visibleCount: Int
+    @State private var dragStartVisibleStart: Int?
 
     private var visibleRange: Range<Int> {
         guard !klines.isEmpty else { return 0..<0 }
@@ -311,7 +312,10 @@ struct CandleChart: View {
                 }
             }
             .gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                updatePan(translationX: value.translation.width, size: proxy.size)
                 updateSelection(at: value.location.x, size: proxy.size)
+            }.onEnded { _ in
+                dragStartVisibleStart = nil
             })
             .gesture(MagnificationGesture().onChanged { scale in
                 updateZoom(scale: scale)
@@ -328,6 +332,22 @@ struct CandleChart: View {
         let plotRect = ChartGeometry.plotRect(size: size, reservesDateAxis: true)
         guard let localIndex = ChartGeometry.indexForX(x, plotRect: plotRect, count: visibleRange.count) else { return }
         selectedIndex = min(visibleRange.lowerBound + localIndex, klines.count - 1)
+    }
+
+    private func updatePan(translationX: CGFloat, size: CGSize) {
+        guard !klines.isEmpty, visibleCount < klines.count else { return }
+        let plotRect = ChartGeometry.plotRect(size: size, reservesDateAxis: true)
+        let baseStart = dragStartVisibleStart ?? visibleStart
+        if dragStartVisibleStart == nil {
+            dragStartVisibleStart = visibleStart
+        }
+        visibleStart = ChartGeometry.pannedStart(
+            currentStart: baseStart,
+            visibleCount: visibleCount,
+            totalCount: klines.count,
+            translationX: translationX,
+            plotWidth: plotRect.width
+        )
     }
 
     private func updateZoom(scale: CGFloat) {

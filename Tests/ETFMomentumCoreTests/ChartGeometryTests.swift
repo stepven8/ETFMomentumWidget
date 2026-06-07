@@ -72,3 +72,17 @@ import Testing
     #expect(ChartGeometry.symmetricRange(values: []) == nil)
     #expect(ChartGeometry.symmetricRange(values: [0, 0, 0]) == nil)
 }
+
+@Test func pannedStartMovesVisibleWindowWithDragDirection() {
+    #expect(ChartGeometry.pannedStart(currentStart: 100, visibleCount: 50, totalCount: 260, translationX: -70, plotWidth: 700) == 105)
+    #expect(ChartGeometry.pannedStart(currentStart: 100, visibleCount: 50, totalCount: 260, translationX: 70, plotWidth: 700) == 95)
+}
+
+@Test func pannedStartClampsToBothEnds() {
+    #expect(ChartGeometry.pannedStart(currentStart: 3, visibleCount: 50, totalCount: 260, translationX: 700, plotWidth: 700) == 0)
+    #expect(ChartGeometry.pannedStart(currentStart: 205, visibleCount: 50, totalCount: 260, translationX: -700, plotWidth: 700) == 210)
+}
+
+@Test func pannedStartDoesNotMoveWhenFullyZoomedOut() {
+    #expect(ChartGeometry.pannedStart(currentStart: 0, visibleCount: 260, totalCount: 260, translationX: -700, plotWidth: 700) == 0)
+}

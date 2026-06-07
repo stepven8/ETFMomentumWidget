@@ -49,4 +49,20 @@ public enum ChartGeometry {
         guard maxAbs > 0 else { return nil }
         return (-maxAbs, maxAbs)
     }
+
+    public static func pannedStart(
+        currentStart: Int,
+        visibleCount: Int,
+        totalCount: Int,
+        translationX: CGFloat,
+        plotWidth: CGFloat
+    ) -> Int {
+        guard totalCount > 0, visibleCount > 0, visibleCount < totalCount, plotWidth > 0 else {
+            return min(max(currentStart, 0), max(totalCount - visibleCount, 0))
+        }
+        let candleWidth = max(plotWidth / CGFloat(visibleCount), 1)
+        let offset = Int((translationX / candleWidth).rounded())
+        let maxStart = max(totalCount - visibleCount, 0)
+        return min(max(currentStart - offset, 0), maxStart)
+    }
 }
