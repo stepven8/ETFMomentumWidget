@@ -24,6 +24,7 @@ targets:
     platform: macOS
     sources:
       - Sources/ETFMomentumApp
+      - Assets.xcassets
     dependencies:
       - target: ETFMomentumCore
       - target: ETFMomentumWidgetExtension
@@ -43,6 +44,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: local.etf.momentum.app
         ENABLE_HARDENED_RUNTIME: false
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
   ETFMomentumWidgetExtension:
     type: app-extension
