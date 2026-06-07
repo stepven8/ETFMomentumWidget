@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var selectedETF: ETF?
     @State private var selectedTab: Panel = .ranking
     @State private var isRefreshing = false
+    @State private var refreshMessage: String?
     @State private var detailKLines: [KLine] = []
 
     enum Panel: String, CaseIterable {
@@ -65,6 +66,11 @@ struct ContentView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(isRefreshing)
             }
+            if let refreshMessage {
+                Text(refreshMessage)
+                    .font(.system(size: 11.5, weight: .medium))
+                    .foregroundStyle(refreshMessage.contains("失败") || refreshMessage.contains("超时") ? Color.warningText : Color.textSecondary)
+            }
             TopFiveStrip(metrics: Array((store.snapshot?.included ?? []).prefix(5)))
         }
         .padding(.horizontal, 18)
@@ -91,11 +97,13 @@ struct ContentView: View {
 
     private func refresh() {
         isRefreshing = true
+        refreshMessage = "正在更新动量排行..."
         Task {
-            await store.refresh()
+            let success = await store.refresh()
             await MainActor.run {
                 isRefreshing = false
                 selectedTab = .ranking
+                refreshMessage = success ? "更新完成 \(Date().formatted(date: .omitted, time: .standard))" : "更新失败或超时，请稍后重试"
             }
         }
     }

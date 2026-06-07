@@ -39,7 +39,7 @@ public final class TencentProvider: MarketDataProvider {
     private let dateFormatter: DateFormatter
     private let navProvider: EastmoneyProvider
 
-    public init(session: URLSession = .shared) {
+    public init(session: URLSession = .etfMomentum) {
         self.session = session
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Shanghai") ?? .current

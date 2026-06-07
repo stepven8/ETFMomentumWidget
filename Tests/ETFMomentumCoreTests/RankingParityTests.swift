@@ -55,6 +55,19 @@ import Testing
     #expect(strictMax.filterReason == .scoreOutOfRange)
 }
 
+@Test func appStoreRefreshTimesOutInsteadOfHanging() async {
+    let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)
+    let store = await AppStore(directory: directory)
+    await MainActor.run {
+        store.etfs = [FixtureProvider.etfs[0]]
+    }
+
+    let succeeded = await store.refresh(provider: HangingProvider(), timeoutSeconds: 1)
+
+    #expect(succeeded == false)
+}
+
 private let fixtureNow = ISO8601DateFormatter().date(from: "2026-06-05T06:00:00Z")!
 
 private final class FixtureProvider: MarketDataProvider, @unchecked Sendable {
@@ -116,5 +129,28 @@ private final class FixtureProvider: MarketDataProvider, @unchecked Sendable {
             let date = calendar.date(byAdding: .day, value: i, to: start) ?? start
             return KLine(date: date, open: adjustedClose * 0.995, close: adjustedClose, high: adjustedClose * 1.01, low: adjustedClose * 0.99, volume: 1_000)
         }
+    }
+}
+
+private final class HangingProvider: MarketDataProvider, @unchecked Sendable {
+    func quote(for etf: ETF) async throws -> Quote {
+        try await Task.sleep(nanoseconds: 60_000_000_000)
+        return Quote(code: etf.code, name: etf.name, lastPrice: 1, pctChange: 0)
+    }
+
+    func dailyKLines(for etf: ETF, limit: Int) async throws -> [KLine] {
+        []
+    }
+
+    func minuteVolumeSumToday(for etf: ETF, now: Date) async throws -> Double? {
+        nil
+    }
+
+    func premiumInfo(for etf: ETF, previousTradingDate: Date) async throws -> PremiumInfo {
+        PremiumInfo(premium: nil, price: nil, netValue: nil)
+    }
+
+    func previousTradingDate(beforeOrOn date: Date) async -> Date {
+        date
     }
 }

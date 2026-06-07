@@ -12,7 +12,7 @@ struct ETFMomentumApp: App {
                 .frame(minWidth: 1180, minHeight: 760)
                 .task {
                     if store.snapshot == nil {
-                        await store.refresh()
+                        _ = await store.refresh()
                     }
                 }
         }

@@ -14,12 +14,22 @@ public enum MarketDataError: Error {
     case missingData
 }
 
+public extension URLSession {
+    static let etfMomentum: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 12
+        configuration.timeoutIntervalForResource = 25
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return URLSession(configuration: configuration)
+    }()
+}
+
 public final class EastmoneyProvider: MarketDataProvider {
     private let session: URLSession
     private let calendar: Calendar
     private let dateFormatter: DateFormatter
 
-    public init(session: URLSession = .shared, calendar: Calendar = Calendar(identifier: .gregorian)) {
+    public init(session: URLSession = .etfMomentum, calendar: Calendar = Calendar(identifier: .gregorian)) {
         self.session = session
         var calendar = calendar
         calendar.timeZone = TimeZone(identifier: "Asia/Shanghai") ?? .current

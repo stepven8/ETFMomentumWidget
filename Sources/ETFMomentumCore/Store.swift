@@ -1,5 +1,9 @@
 import Foundation
 
+public enum RefreshError: Error {
+    case timeout
+}
+
 @MainActor
 public final class AppStore: ObservableObject {
     @Published public var config: StrategyConfig
@@ -39,11 +43,27 @@ public final class AppStore: ObservableObject {
         try encoder.encode(snapshot).write(to: directory.appendingPathComponent("snapshot.json"), options: .atomic)
     }
 
-    public func refresh(provider: any MarketDataProvider = FallbackMarketDataProvider()) async {
-        let engine = RankingEngine(config: config, provider: provider)
-        let next = await engine.rank(etfs: etfs, includeFiltered: true)
-        await MainActor.run {
-            try? self.saveSnapshot(next)
+    public func refresh(provider: any MarketDataProvider = FallbackMarketDataProvider(), timeoutSeconds: UInt64 = 90) async -> Bool {
+        do {
+            let next = try await withThrowingTaskGroup(of: RankingSnapshot.self) { group in
+                let config = config
+                let etfs = etfs
+                group.addTask {
+                    let engine = RankingEngine(config: config, provider: provider)
+                    return await engine.rank(etfs: etfs, includeFiltered: true)
+                }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: timeoutSeconds * 1_000_000_000)
+                    throw RefreshError.timeout
+                }
+                guard let result = try await group.next() else { throw RefreshError.timeout }
+                group.cancelAll()
+                return result
+            }
+            try saveSnapshot(next)
+            return true
+        } catch {
+            return false
         }
     }
 
