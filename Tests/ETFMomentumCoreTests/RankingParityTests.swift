@@ -86,13 +86,19 @@ import Testing
     let directory = URL(fileURLWithPath: NSTemporaryDirectory())
         .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)
     let store = await AppStore(directory: directory)
+    let oldSnapshot = RankingSnapshot(generatedAt: fixtureNow, metrics: [
+        RankingMetric(etf: FixtureProvider.etfs[0], score: 9, currentPrice: 2.1, filterReason: .included)
+    ])
     await MainActor.run {
         store.etfs = [FixtureProvider.etfs[0]]
+        try? store.saveSnapshot(oldSnapshot)
     }
 
     let succeeded = await store.refresh(provider: HangingProvider(), timeoutSeconds: 1)
 
     #expect(succeeded == false)
+    #expect(await store.snapshot?.generatedAt == oldSnapshot.generatedAt)
+    #expect(await store.snapshot?.included.first?.score == 9)
 }
 
 @Test func appStoreRefreshMessageUsesSnapshotGeneratedAt() async {
@@ -113,6 +119,88 @@ import Testing
         #expect(message?.contains(snapshotDate.formatted(date: .omitted, time: .standard)) == true)
     }
     #expect(await store.isRefreshing == false)
+}
+
+@Test func refreshFailureDoesNotOverwriteExistingSnapshot() async throws {
+    let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)
+    let store = await AppStore(directory: directory)
+    let oldSnapshot = RankingSnapshot(generatedAt: fixtureNow, metrics: [
+        RankingMetric(etf: FixtureProvider.etfs[0], score: 8, currentPrice: 2.2, pctChange: 1.1, filterReason: .included)
+    ])
+
+    try await MainActor.run {
+        store.etfs = [FixtureProvider.etfs[0]]
+        try store.saveSnapshot(oldSnapshot)
+    }
+
+    let succeeded = await store.refresh(provider: AlwaysFailingProvider(), timeoutSeconds: 1)
+    let cached = AppStore.cachedSnapshot(directory: directory)
+
+    #expect(succeeded == false)
+    #expect(await store.snapshot?.generatedAt == oldSnapshot.generatedAt)
+    #expect(await store.snapshot?.included.first?.score == 8)
+    #expect(cached?.generatedAt == oldSnapshot.generatedAt)
+    #expect(cached?.included.first?.score == 8)
+}
+
+@Test func incompleteDailyDataRefreshDoesNotOverwriteExistingSnapshot() async throws {
+    let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)
+    let store = await AppStore(directory: directory)
+    let oldSnapshot = RankingSnapshot(generatedAt: fixtureNow, metrics: [
+        RankingMetric(etf: FixtureProvider.etfs[0], score: 7, currentPrice: 2.3, pctChange: 1.2, filterReason: .included)
+    ])
+
+    try await MainActor.run {
+        store.etfs = [FixtureProvider.etfs[0]]
+        try store.saveSnapshot(oldSnapshot)
+    }
+
+    let succeeded = await store.refresh(provider: IncompleteDailyDataProvider(), timeoutSeconds: 1)
+
+    #expect(succeeded == false)
+    #expect(await store.snapshot?.generatedAt == oldSnapshot.generatedAt)
+    #expect(await store.snapshot?.included.first?.score == 7)
+}
+
+@Test func savingSettingsRefreshFailureKeepsExistingSnapshotUntilSuccessfulRefresh() async throws {
+    let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)
+    let store = await AppStore(directory: directory)
+    let oldSnapshot = RankingSnapshot(generatedAt: fixtureNow, metrics: [
+        RankingMetric(etf: FixtureProvider.etfs[0], score: 6, currentPrice: 2.4, pctChange: 1.3, filterReason: .included)
+    ])
+
+    try await MainActor.run {
+        store.etfs = [FixtureProvider.etfs[0], FixtureProvider.etfs[1]]
+        try store.saveSnapshot(oldSnapshot)
+        store.config.lookbackDays = 30
+        try store.saveConfigAndPool(applyToSnapshot: false)
+    }
+
+    let succeeded = await store.refresh(provider: AlwaysFailingProvider(), timeoutSeconds: 1)
+
+    #expect(succeeded == false)
+    #expect(await store.snapshot?.generatedAt == oldSnapshot.generatedAt)
+    #expect(await store.snapshot?.included.first?.score == 6)
+    #expect(await store.snapshot?.metrics.count == 1)
+}
+
+@Test func klineCachePersistsDownloadedDataAndIgnoresEmptyWrites() throws {
+    let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)
+    let cache = KLineCache(directory: directory)
+    let etf = FixtureProvider.etfs[0]
+    let lines = [
+        KLine(date: fixtureNow, open: 1, close: 1.1, high: 1.2, low: 0.9, volume: 1_000)
+    ]
+
+    try cache.save(lines, etf: etf, limit: 260)
+    try cache.save([], etf: etf, limit: 260)
+
+    let cached = cache.load(etf: etf, limit: 260)
+    #expect(cached == lines)
 }
 
 @Test func savingDisabledETFImmediatelyUpdatesCachedRanking() async throws {
@@ -302,6 +390,50 @@ private final class OptionalDataFailingProvider: FixtureProvider, @unchecked Sen
 
     override func premiumInfo(for etf: ETF, previousTradingDate: Date) async throws -> PremiumInfo {
         throw MarketDataError.missingData
+    }
+}
+
+private final class AlwaysFailingProvider: MarketDataProvider, @unchecked Sendable {
+    func quote(for etf: ETF) async throws -> Quote {
+        throw MarketDataError.missingData
+    }
+
+    func dailyKLines(for etf: ETF, limit: Int) async throws -> [KLine] {
+        throw MarketDataError.missingData
+    }
+
+    func minuteVolumeSumToday(for etf: ETF, now: Date) async throws -> Double? {
+        throw MarketDataError.missingData
+    }
+
+    func premiumInfo(for etf: ETF, previousTradingDate: Date) async throws -> PremiumInfo {
+        throw MarketDataError.missingData
+    }
+
+    func previousTradingDate(beforeOrOn date: Date) async -> Date {
+        date
+    }
+}
+
+private final class IncompleteDailyDataProvider: MarketDataProvider, @unchecked Sendable {
+    func quote(for etf: ETF) async throws -> Quote {
+        Quote(code: etf.code, name: etf.name, lastPrice: 1, pctChange: 0)
+    }
+
+    func dailyKLines(for etf: ETF, limit: Int) async throws -> [KLine] {
+        []
+    }
+
+    func minuteVolumeSumToday(for etf: ETF, now: Date) async throws -> Double? {
+        nil
+    }
+
+    func premiumInfo(for etf: ETF, previousTradingDate: Date) async throws -> PremiumInfo {
+        PremiumInfo(premium: nil, price: nil, netValue: nil)
+    }
+
+    func previousTradingDate(beforeOrOn date: Date) async -> Date {
+        date
     }
 }
 

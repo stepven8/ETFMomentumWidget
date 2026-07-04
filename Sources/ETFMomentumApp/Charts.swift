@@ -9,6 +9,7 @@ struct ETFDetailView: View {
     @State private var visibleStart = 0
     @State private var visibleCount = 260
     @State private var isLoading = false
+    private let klineLimit = 260
 
     private var selectedKLine: KLine? {
         guard let selectedIndex, klines.indices.contains(selectedIndex) else { return nil }
@@ -103,22 +104,36 @@ struct ETFDetailView: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
-        do {
-            let lines = try await FallbackMarketDataProvider().dailyKLines(for: etf, limit: 260)
+        let cache = KLineCache()
+        let cached = cache.load(etf: etf, limit: klineLimit)
+        if !cached.isEmpty {
             await MainActor.run {
-                klines = lines
-                selectedIndex = lines.isEmpty ? nil : lines.count - 1
-                visibleStart = 0
-                visibleCount = lines.count
+                applyKLines(cached)
+            }
+        }
+        do {
+            let lines = try await FallbackMarketDataProvider().dailyKLines(for: etf, limit: klineLimit)
+            guard !lines.isEmpty else { return }
+            try? cache.save(lines, etf: etf, limit: klineLimit)
+            await MainActor.run {
+                applyKLines(lines)
             }
         } catch {
             await MainActor.run {
-                klines = []
-                selectedIndex = nil
-                visibleStart = 0
-                visibleCount = 0
+                if klines.isEmpty {
+                    selectedIndex = nil
+                    visibleStart = 0
+                    visibleCount = 0
+                }
             }
         }
+    }
+
+    private func applyKLines(_ lines: [KLine]) {
+        klines = lines
+        selectedIndex = lines.isEmpty ? nil : lines.count - 1
+        visibleStart = 0
+        visibleCount = lines.count
     }
 
     private var minVisibleCount: Int { min(30, max(klines.count, 1)) }

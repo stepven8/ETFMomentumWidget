@@ -48,11 +48,13 @@ public final class AppStore: ObservableObject {
         load(RankingSnapshot.self, from: directory.appendingPathComponent("snapshot.json"))
     }
 
-    public func saveConfigAndPool() throws {
+    public func saveConfigAndPool(applyToSnapshot: Bool = true) throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try encoder.encode(config).write(to: directory.appendingPathComponent("config.json"), options: .atomic)
         try encoder.encode(etfs).write(to: directory.appendingPathComponent("etfs.json"), options: .atomic)
-        applyCurrentPoolToSnapshot()
+        if applyToSnapshot {
+            applyCurrentPoolToSnapshot()
+        }
     }
 
     public func saveSnapshot(_ snapshot: RankingSnapshot) throws {
@@ -133,8 +135,8 @@ public final class AppStore: ObservableObject {
             }
         }
 
-        guard let next else {
-            refreshMessage = "更新失败或超时，请稍后重试"
+        guard let next, canCommit(snapshot: next, for: etfs) else {
+            refreshMessage = "更新失败或数据不完整，已保留原有数据"
             return false
         }
         do {
@@ -142,9 +144,34 @@ public final class AppStore: ObservableObject {
             refreshMessage = "更新完成 \(next.generatedAt.formatted(date: .omitted, time: .standard))"
             return true
         } catch {
-            refreshMessage = "更新失败或超时，请稍后重试"
+            refreshMessage = "更新失败或数据不完整，已保留原有数据"
             return false
         }
+    }
+
+    private func canCommit(snapshot: RankingSnapshot, for etfs: [ETF]) -> Bool {
+        let expectedCodes = Set(etfs.map(\.code))
+        let metricsByCode = Dictionary(grouping: snapshot.metrics, by: { $0.etf.code })
+
+        guard !expectedCodes.isEmpty else { return true }
+        guard Set(metricsByCode.keys).isSuperset(of: expectedCodes) else { return false }
+
+        for etf in etfs {
+            guard let matches = metricsByCode[etf.code], matches.count == 1, let metric = matches.first else {
+                return false
+            }
+            if metric.filterReason == .calculationError || metric.filterReason == .pendingRefresh || metric.filterReason == .insufficientData {
+                return false
+            }
+            if metric.currentPrice <= 0 {
+                return false
+            }
+            if etf.enabled && metric.etf.enabled == false {
+                return false
+            }
+        }
+
+        return true
     }
 
     nonisolated private static func load<T: Decodable>(_ type: T.Type, from url: URL) -> T? {

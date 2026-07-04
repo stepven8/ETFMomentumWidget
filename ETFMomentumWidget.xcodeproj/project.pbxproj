@@ -14,6 +14,7 @@
 		4191BB1A201DB9D2B8844608 /* TencentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D279E26F271D101B7F8FE19 /* TencentProvider.swift */; };
 		41DA2B0D68C0AB26FA635053 /* DefaultETFPool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B2CB17E1F82C74A5D4E78B /* DefaultETFPool.swift */; };
 		428DB3F582097E69603824A3 /* DataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8AF4F6CB3208D48DC0AFC5 /* DataProvider.swift */; };
+		42C6C8E80000000000000001 /* KLineCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42C6C8E70000000000000001 /* KLineCache.swift */; };
 		470DE8D0C5F99A42EBF14941 /* ETFMomentumWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2E2146485D28753EE02CA657 /* ETFMomentumWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		47EC9B0FB841EE6AFEBC06EF /* ETFMomentumCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAC5AA6B65089E97B679886 /* ETFMomentumCore.framework */; };
 		550021D47DEBBF98AF7C263F /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF2B7A394800265739ACABD /* Store.swift */; };
@@ -85,6 +86,7 @@
 		3AF80E9C67E13B9E84051698 /* Math.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Math.swift; sourceTree = "<group>"; };
 		3CAC5AA6B65089E97B679886 /* ETFMomentumCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ETFMomentumCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		3E04C598D7441345C8644268 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		42C6C8E70000000000000001 /* KLineCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KLineCache.swift; sourceTree = "<group>"; };
 		46FA7B925A379A1F48D2ED9E /* RankingParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingParityTests.swift; sourceTree = "<group>"; };
 		4BAC7BB2D1DA62F5DD782812 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		5C8AF4F6CB3208D48DC0AFC5 /* DataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataProvider.swift; sourceTree = "<group>"; };
@@ -148,6 +150,7 @@
 				0EA14A78DE2E0D3B1BCEE2CB /* ChartGeometry.swift */,
 				5C8AF4F6CB3208D48DC0AFC5 /* DataProvider.swift */,
 				01B2CB17E1F82C74A5D4E78B /* DefaultETFPool.swift */,
+				42C6C8E70000000000000001 /* KLineCache.swift */,
 				3AF80E9C67E13B9E84051698 /* Math.swift */,
 				4BAC7BB2D1DA62F5DD782812 /* Models.swift */,
 				2A425B62421E5FF6DBE5FD61 /* RankingEngine.swift */,
@@ -378,6 +381,7 @@
 				163320C957B08DCA053BF540 /* ChartGeometry.swift in Sources */,
 				428DB3F582097E69603824A3 /* DataProvider.swift in Sources */,
 				41DA2B0D68C0AB26FA635053 /* DefaultETFPool.swift in Sources */,
+				42C6C8E80000000000000001 /* KLineCache.swift in Sources */,
 				A0A3C7EC5347D21A8B84DB60 /* Math.swift in Sources */,
 				ADD7AC59EC871CC2876F929E /* Models.swift in Sources */,
 				B083CD7CB63FF708E597D23C /* RankingEngine.swift in Sources */,

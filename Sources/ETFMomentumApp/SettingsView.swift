@@ -131,13 +131,13 @@ struct SettingsView: View {
         saveMessage = "正在保存设置并重新计算排行..."
         Task {
             do {
-                try store.saveConfigAndPool()
+                try store.saveConfigAndPool(applyToSnapshot: false)
                 let success = await store.refresh()
                 await MainActor.run {
                     let timeText = store.snapshot?.generatedAt.formatted(date: .omitted, time: .standard) ?? Date().formatted(date: .omitted, time: .standard)
                     saveMessage = success
                         ? "保存完成，排行已重新计算 \(timeText)"
-                        : "保存成功，但重新计算失败或超时"
+                        : "保存成功，但重新计算失败，已保留原有排行数据"
                 }
             } catch {
                 await MainActor.run {
