@@ -63,6 +63,22 @@ public final class EasyTDXProvider: MarketDataProvider {
         return MomentumMath.withDailyPctChange(lines)
     }
 
+    public func kLines(for etf: ETF, period: String, count: Int, startOffset: Int = 0, adjust: String? = nil, barTime: String? = nil) async throws -> [KLine] {
+        var arguments = ["kline", market(for: etf), etf.eastmoneyCode, "--period", period, "--count", String(count), "--start", String(startOffset)]
+        if let adjust {
+            arguments += ["--adjust", adjust]
+        }
+        if let barTime {
+            arguments += ["--bar-time", barTime]
+        }
+        arguments += ["--output", "json"]
+        let data = try run(arguments: arguments)
+        let decoded = try JSONDecoder().decode([EasyTDXKLine].self, from: data)
+        let lines = decoded.compactMap(parseKLine)
+        guard !lines.isEmpty else { throw MarketDataError.missingData }
+        return period == "DAILY" ? MomentumMath.withDailyPctChange(lines) : lines
+    }
+
     public func minuteVolumeSumToday(for etf: ETF, now: Date) async throws -> Double? {
         let data = try run(arguments: ["kline", market(for: etf), etf.eastmoneyCode, "--period", "1MIN", "--count", "300", "--output", "json"])
         let decoded = try JSONDecoder().decode([EasyTDXKLine].self, from: data)
@@ -96,10 +112,22 @@ public final class EasyTDXProvider: MarketDataProvider {
             process.arguments = [command] + arguments
         }
 
-        let out = Pipe()
-        let err = Pipe()
-        process.standardOutput = out
-        process.standardError = err
+        let tempDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ETFMomentumEasyTDX-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+        let outURL = tempDirectory.appendingPathComponent("stdout.json")
+        let errURL = tempDirectory.appendingPathComponent("stderr.txt")
+        FileManager.default.createFile(atPath: outURL.path, contents: nil)
+        FileManager.default.createFile(atPath: errURL.path, contents: nil)
+        let outHandle = try FileHandle(forWritingTo: outURL)
+        let errHandle = try FileHandle(forWritingTo: errURL)
+        defer {
+            try? outHandle.close()
+            try? errHandle.close()
+            try? FileManager.default.removeItem(at: tempDirectory)
+        }
+        process.standardOutput = outHandle
+        process.standardError = errHandle
         let semaphore = DispatchSemaphore(value: 0)
         process.terminationHandler = { _ in semaphore.signal() }
         try process.run()
@@ -110,10 +138,12 @@ public final class EasyTDXProvider: MarketDataProvider {
             throw EasyTDXError.timeout
         }
 
-        let data = out.fileHandleForReading.readDataToEndOfFile()
+        let data = try Data(contentsOf: outURL)
         if process.terminationStatus != 0 {
-            let message = String(data: err.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? "easy-tdx failed"
-            throw EasyTDXError.processFailed(message)
+            let stderr = (try? String(contentsOf: errURL, encoding: .utf8)) ?? ""
+            let message = stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            let commandText = ([command] + arguments).joined(separator: " ")
+            throw EasyTDXError.processFailed(message.isEmpty ? "\(commandText) failed with status \(process.terminationStatus)" : "\(commandText): \(message)")
         }
         guard !data.isEmpty else { throw MarketDataError.missingData }
         return data
@@ -157,7 +187,7 @@ public final class EasyTDXProvider: MarketDataProvider {
     }
 }
 
-public enum EasyTDXError: Error, CustomStringConvertible {
+public enum EasyTDXError: Error, CustomStringConvertible, LocalizedError {
     case binaryNotFound
     case timeout
     case processFailed(String)
@@ -165,12 +195,16 @@ public enum EasyTDXError: Error, CustomStringConvertible {
     public var description: String {
         switch self {
         case .binaryNotFound:
-            return "easy-tdx binary not found"
+            return "未找到 easy-tdx，可设置 ETF_MOMENTUM_EASY_TDX_BIN 或安装到 /Users/cai/代码/easy_tdx/.venv/bin/easy-tdx"
         case .timeout:
-            return "easy-tdx timed out"
+            return "easy-tdx 请求超时"
         case .processFailed(let message):
             return message
         }
+    }
+
+    public var errorDescription: String? {
+        description
     }
 }
 

@@ -13,7 +13,12 @@ let package = Package(
         .library(name: "ETFMomentumWidgetExtension", targets: ["ETFMomentumWidgetExtension"])
     ],
     targets: [
-        .target(name: "ETFMomentumCore"),
+        .target(
+            name: "ETFMomentumCore",
+            linkerSettings: [
+                .linkedLibrary("sqlite3")
+            ]
+        ),
         .executableTarget(
             name: "ETFMomentumApp",
             dependencies: ["ETFMomentumCore"],

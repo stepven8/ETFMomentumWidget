@@ -14,11 +14,14 @@ struct ContentView: View {
     enum Panel: String, CaseIterable {
         case ranking = "完整排行"
         case settings = "参数设置"
+        case backtest = "回测分析"
     }
 
     var body: some View {
         Group {
-            if isDetailHidden {
+            if selectedTab == .backtest {
+                BacktestView(selectedTab: $selectedTab)
+            } else if isDetailHidden {
                 sidebar
                     .frame(width: sidebarWidth)
             } else {
@@ -38,8 +41,8 @@ struct ContentView: View {
             hostingWindow = window
             configureWindowForCurrentState()
         })
-        .frame(width: isDetailHidden ? sidebarWidth : nil)
-        .frame(minWidth: isDetailHidden ? sidebarWidth : expandedMinWidth, minHeight: minWindowHeight)
+        .frame(width: isDetailHidden && selectedTab != .backtest ? sidebarWidth : nil)
+        .frame(minWidth: selectedTab == .backtest ? expandedMinWidth : (isDetailHidden ? sidebarWidth : expandedMinWidth), minHeight: minWindowHeight)
         .preferredColorScheme(.dark)
         .animation(.easeInOut(duration: 0.18), value: isDetailHidden)
         .toolbar {
@@ -178,7 +181,9 @@ struct ContentView: View {
     private func configureWindowForCurrentState() {
         DispatchQueue.main.async {
             guard let window = activeWindow else { return }
-            if isDetailHidden {
+            if selectedTab == .backtest {
+                applyExpandedWindowLimits(to: window)
+            } else if isDetailHidden {
                 applyHiddenWindowLimits(to: window)
                 let frame = window.frame
                 window.setFrame(
@@ -216,6 +221,7 @@ struct ContentView: View {
     private var activeWindow: NSWindow? {
         hostingWindow ?? NSApp.keyWindow ?? NSApp.windows.first { $0.isVisible }
     }
+
 }
 
 private struct WindowAccessor: NSViewRepresentable {
@@ -239,6 +245,7 @@ private struct WindowAccessor: NSViewRepresentable {
         }
     }
 }
+
 
 struct RankingList: View {
     @EnvironmentObject private var store: AppStore

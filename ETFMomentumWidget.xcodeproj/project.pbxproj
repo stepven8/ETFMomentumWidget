@@ -8,6 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		163320C957B08DCA053BF540 /* ChartGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EA14A78DE2E0D3B1BCEE2CB /* ChartGeometry.swift */; };
+		190000000000000000000001 /* BacktestModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190000000000000000000101 /* BacktestModels.swift */; };
+		190000000000000000000002 /* BacktestStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190000000000000000000102 /* BacktestStore.swift */; };
+		190000000000000000000003 /* BacktestDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190000000000000000000103 /* BacktestDataProvider.swift */; };
+		190000000000000000000004 /* BacktestEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190000000000000000000104 /* BacktestEngine.swift */; };
+		190000000000000000000005 /* BacktestExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190000000000000000000105 /* BacktestExport.swift */; };
+		190000000000000000000006 /* BacktestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190000000000000000000106 /* BacktestView.swift */; };
+		190000000000000000000007 /* BacktestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190000000000000000000107 /* BacktestTests.swift */; };
 		2C11B893625DFBFB75DF6960 /* ETFMomentumApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C623568223150D94BC330513 /* ETFMomentumApp.swift */; };
 		2CCCD1E665D02374E49E4506 /* RankingParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46FA7B925A379A1F48D2ED9E /* RankingParityTests.swift */; };
 		33AF1076612B2D227E573FF9 /* Charts.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBFC24949CF858D722F157FD /* Charts.swift */; };
@@ -81,6 +88,13 @@
 /* Begin PBXFileReference section */
 		01B2CB17E1F82C74A5D4E78B /* DefaultETFPool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultETFPool.swift; sourceTree = "<group>"; };
 		0EA14A78DE2E0D3B1BCEE2CB /* ChartGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartGeometry.swift; sourceTree = "<group>"; };
+		190000000000000000000101 /* BacktestModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BacktestModels.swift; sourceTree = "<group>"; };
+		190000000000000000000102 /* BacktestStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BacktestStore.swift; sourceTree = "<group>"; };
+		190000000000000000000103 /* BacktestDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BacktestDataProvider.swift; sourceTree = "<group>"; };
+		190000000000000000000104 /* BacktestEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BacktestEngine.swift; sourceTree = "<group>"; };
+		190000000000000000000105 /* BacktestExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BacktestExport.swift; sourceTree = "<group>"; };
+		190000000000000000000106 /* BacktestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BacktestView.swift; sourceTree = "<group>"; };
+		190000000000000000000107 /* BacktestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BacktestTests.swift; sourceTree = "<group>"; };
 		2A425B62421E5FF6DBE5FD61 /* RankingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingEngine.swift; sourceTree = "<group>"; };
 		2E2146485D28753EE02CA657 /* ETFMomentumWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ETFMomentumWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2E568ABD592721DF34A4D1CD /* ETFMomentumApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ETFMomentumApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -149,6 +163,11 @@
 			isa = PBXGroup;
 			children = (
 				BB380FC78F43958890AE53F2 /* AKShareProvider.swift */,
+				190000000000000000000103 /* BacktestDataProvider.swift */,
+				190000000000000000000104 /* BacktestEngine.swift */,
+				190000000000000000000105 /* BacktestExport.swift */,
+				190000000000000000000101 /* BacktestModels.swift */,
+				190000000000000000000102 /* BacktestStore.swift */,
 				0EA14A78DE2E0D3B1BCEE2CB /* ChartGeometry.swift */,
 				5C8AF4F6CB3208D48DC0AFC5 /* DataProvider.swift */,
 				01B2CB17E1F82C74A5D4E78B /* DefaultETFPool.swift */,
@@ -167,6 +186,7 @@
 		133018377455CC0D6B355C7B /* ETFMomentumApp */ = {
 			isa = PBXGroup;
 			children = (
+				190000000000000000000106 /* BacktestView.swift */,
 				EBFC24949CF858D722F157FD /* Charts.swift */,
 				81DFED945E3403CCC17F612D /* ContentView.swift */,
 				C623568223150D94BC330513 /* ETFMomentumApp.swift */,
@@ -188,6 +208,7 @@
 		8A00237D8591E782E24437E2 /* ETFMomentumCoreTests */ = {
 			isa = PBXGroup;
 			children = (
+				190000000000000000000107 /* BacktestTests.swift */,
 				853AFFFD50617544E6BB47BC /* ChartGeometryTests.swift */,
 				46FA7B925A379A1F48D2ED9E /* RankingParityTests.swift */,
 			);
@@ -369,6 +390,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				190000000000000000000006 /* BacktestView.swift in Sources */,
 				33AF1076612B2D227E573FF9 /* Charts.swift in Sources */,
 				8DDB0C0CCB4D380F5C7F2443 /* ContentView.swift in Sources */,
 				2C11B893625DFBFB75DF6960 /* ETFMomentumApp.swift in Sources */,
@@ -381,6 +403,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				BC91BB6D08A9C3E69FF97BF1 /* AKShareProvider.swift in Sources */,
+				190000000000000000000003 /* BacktestDataProvider.swift in Sources */,
+				190000000000000000000004 /* BacktestEngine.swift in Sources */,
+				190000000000000000000005 /* BacktestExport.swift in Sources */,
+				190000000000000000000001 /* BacktestModels.swift in Sources */,
+				190000000000000000000002 /* BacktestStore.swift in Sources */,
 				163320C957B08DCA053BF540 /* ChartGeometry.swift in Sources */,
 				428DB3F582097E69603824A3 /* DataProvider.swift in Sources */,
 				41DA2B0D68C0AB26FA635053 /* DefaultETFPool.swift in Sources */,
@@ -398,6 +425,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				190000000000000000000007 /* BacktestTests.swift in Sources */,
 				99889ADF15CE6291E7FF6464 /* ChartGeometryTests.swift in Sources */,
 				2CCCD1E665D02374E49E4506 /* RankingParityTests.swift in Sources */,
 			);
@@ -475,6 +503,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				OTHER_LDFLAGS = "-lsqlite3";
 				PRODUCT_BUNDLE_IDENTIFIER = local.etf.momentum.core;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -497,6 +526,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				OTHER_LDFLAGS = "-lsqlite3";
 				PRODUCT_BUNDLE_IDENTIFIER = local.etf.momentum.core;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
