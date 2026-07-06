@@ -78,8 +78,7 @@ public struct RankingEngine: Sendable {
                 return RankingMetric(etf: named(etf, quote: quote), currentPrice: quote.lastPrice, pctChange: quote.pctChange, filterReason: .insufficientData)
             }
 
-            let closes = prices.map(\.close)
-            let priceSeries = closes + [quote.lastPrice]
+            let priceSeries = priceSeries(dailyPrices: prices, currentPrice: quote.lastPrice)
 
             if config.enableProfitProtection, checkProfitProtection(prices: prices, currentPrice: quote.lastPrice) {
                 return RankingMetric(etf: named(etf, quote: quote), currentPrice: quote.lastPrice, pctChange: quote.pctChange, filterReason: .profitProtection, closes: priceSeries)
@@ -142,6 +141,21 @@ public struct RankingEngine: Sendable {
 
     private func named(_ etf: ETF, quote: Quote) -> ETF {
         ETF(code: etf.code, name: quote.name.isEmpty ? etf.name : quote.name, enabled: etf.enabled)
+    }
+
+    private func priceSeries(dailyPrices: [KLine], currentPrice: Double) -> [Double] {
+        guard !dailyPrices.isEmpty else { return [currentPrice] }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Shanghai") ?? .current
+
+        var closes = dailyPrices.map(\.close)
+        if let lastDate = dailyPrices.last?.date, calendar.isDate(lastDate, inSameDayAs: now()) {
+            closes[closes.count - 1] = currentPrice
+        } else {
+            closes.append(currentPrice)
+        }
+        return closes
     }
 
     private func checkProfitProtection(prices: [KLine], currentPrice: Double) -> Bool {

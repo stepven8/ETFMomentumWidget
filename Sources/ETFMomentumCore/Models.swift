@@ -22,6 +22,7 @@ public struct StrategyConfig: Codable, Equatable, Sendable {
     public var profitProtectionCheckTimes: [String]
     public var enablePremiumFilter: Bool
     public var premiumThreshold: Double
+    public var enableEasyTDXProvider: Bool
 
     public init(
         lookbackDays: Int = 25,
@@ -44,7 +45,8 @@ public struct StrategyConfig: Codable, Equatable, Sendable {
         profitProtectionThreshold: Double = 0.05,
         profitProtectionCheckTimes: [String] = ["11:00"],
         enablePremiumFilter: Bool = true,
-        premiumThreshold: Double = 0.20
+        premiumThreshold: Double = 0.20,
+        enableEasyTDXProvider: Bool = false
     ) {
         self.lookbackDays = lookbackDays
         self.holdingsNum = holdingsNum
@@ -67,6 +69,58 @@ public struct StrategyConfig: Codable, Equatable, Sendable {
         self.profitProtectionCheckTimes = profitProtectionCheckTimes
         self.enablePremiumFilter = enablePremiumFilter
         self.premiumThreshold = premiumThreshold
+        self.enableEasyTDXProvider = enableEasyTDXProvider
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case lookbackDays
+        case holdingsNum
+        case defensiveETF
+        case minMoney
+        case stopLoss
+        case loss
+        case minScoreThreshold
+        case maxScoreThreshold
+        case enableVolumeCheck
+        case volumeLookback
+        case volumeThreshold
+        case volumeReturnLimit
+        case useShortMomentumFilter
+        case shortLookbackDays
+        case shortMomentumThreshold
+        case enableProfitProtection
+        case profitProtectionLookback
+        case profitProtectionThreshold
+        case profitProtectionCheckTimes
+        case enablePremiumFilter
+        case premiumThreshold
+        case enableEasyTDXProvider
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.lookbackDays = try container.decodeIfPresent(Int.self, forKey: .lookbackDays) ?? 25
+        self.holdingsNum = try container.decodeIfPresent(Int.self, forKey: .holdingsNum) ?? 1
+        self.defensiveETF = try container.decodeIfPresent(String.self, forKey: .defensiveETF) ?? "511880.XSHG"
+        self.minMoney = try container.decodeIfPresent(Double.self, forKey: .minMoney) ?? 5000
+        self.stopLoss = try container.decodeIfPresent(Double.self, forKey: .stopLoss) ?? 0.95
+        self.loss = try container.decodeIfPresent(Double.self, forKey: .loss) ?? 0.97
+        self.minScoreThreshold = try container.decodeIfPresent(Double.self, forKey: .minScoreThreshold) ?? 0
+        self.maxScoreThreshold = try container.decodeIfPresent(Double.self, forKey: .maxScoreThreshold) ?? 100
+        self.enableVolumeCheck = try container.decodeIfPresent(Bool.self, forKey: .enableVolumeCheck) ?? true
+        self.volumeLookback = try container.decodeIfPresent(Int.self, forKey: .volumeLookback) ?? 5
+        self.volumeThreshold = try container.decodeIfPresent(Double.self, forKey: .volumeThreshold) ?? 2
+        self.volumeReturnLimit = try container.decodeIfPresent(Double.self, forKey: .volumeReturnLimit) ?? 1
+        self.useShortMomentumFilter = try container.decodeIfPresent(Bool.self, forKey: .useShortMomentumFilter) ?? true
+        self.shortLookbackDays = try container.decodeIfPresent(Int.self, forKey: .shortLookbackDays) ?? 10
+        self.shortMomentumThreshold = try container.decodeIfPresent(Double.self, forKey: .shortMomentumThreshold) ?? 0
+        self.enableProfitProtection = try container.decodeIfPresent(Bool.self, forKey: .enableProfitProtection) ?? true
+        self.profitProtectionLookback = try container.decodeIfPresent(Int.self, forKey: .profitProtectionLookback) ?? 1
+        self.profitProtectionThreshold = try container.decodeIfPresent(Double.self, forKey: .profitProtectionThreshold) ?? 0.05
+        self.profitProtectionCheckTimes = try container.decodeIfPresent([String].self, forKey: .profitProtectionCheckTimes) ?? ["11:00"]
+        self.enablePremiumFilter = try container.decodeIfPresent(Bool.self, forKey: .enablePremiumFilter) ?? true
+        self.premiumThreshold = try container.decodeIfPresent(Double.self, forKey: .premiumThreshold) ?? 0.20
+        self.enableEasyTDXProvider = try container.decodeIfPresent(Bool.self, forKey: .enableEasyTDXProvider) ?? false
     }
 }
 

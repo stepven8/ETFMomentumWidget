@@ -82,6 +82,93 @@ import Testing
     #expect(strictMax.filterReason == .scoreOutOfRange)
 }
 
+@Test func currentPriceReplacesTodayDailyCloseInsteadOfDuplicatingIt() async {
+    let provider = TodayKLineProvider()
+    let engine = RankingEngine(
+        config: StrategyConfig(maxScoreThreshold: 10_000, enableVolumeCheck: false, useShortMomentumFilter: false, enableProfitProtection: false, enablePremiumFilter: false),
+        provider: provider,
+        now: { fixtureNow }
+    )
+
+    let metric = await engine.calculate(etf: FixtureProvider.etfs[0])
+
+    #expect(metric.filterReason == .included)
+    #expect(metric.currentPrice == 13)
+    #expect(metric.closes.count == 30)
+    #expect(metric.closes.suffix(4).map { Double(round($0 * 1000) / 1000) } == [10, 11, 12, 13])
+}
+
+@Test func easyTDXQuoteMapsCLIJSON() async throws {
+    let script = try makeEasyTDXScript()
+    let provider = EasyTDXProvider(binaryPath: script.path)
+    let quote = try await provider.quote(for: ETF(code: "510300.XSHG", name: "沪深300ETF华泰柏瑞"))
+
+    #expect(quote.code == "510300.XSHG")
+    #expect(quote.name == "沪深300ETF华泰柏瑞")
+    #expect(quote.lastPrice == 4.905)
+    #expect(abs(quote.pctChange - 1.1340206185567136) < 0.0000000001)
+    #expect(quote.volume == 12345)
+    #expect(quote.paused == false)
+}
+
+@Test func easyTDXDailyKLinesMapsCLIJSONAndCalculatesPctChange() async throws {
+    let script = try makeEasyTDXScript()
+    let provider = EasyTDXProvider(binaryPath: script.path)
+    let lines = try await provider.dailyKLines(for: ETF(code: "510300.XSHG", name: "沪深300ETF华泰柏瑞"), limit: 3)
+
+    #expect(lines.count == 3)
+    #expect(lines[0].open == 4.8)
+    #expect(lines[1].close == 4.95)
+    #expect(lines[2].volume == 300)
+    #expect(lines[2].amount == 3000)
+    #expect(abs(lines[1].pctChange - 1.0204081632653061) < 0.0000000001)
+    #expect(abs(lines[2].pctChange - -0.9090909090909091) < 0.0000000001)
+}
+
+@Test func easyTDXMinuteVolumeSumsTodayOnly() async throws {
+    let script = try makeEasyTDXScript()
+    let provider = EasyTDXProvider(binaryPath: script.path)
+    let now = ISO8601DateFormatter().date(from: "2026-06-05T06:00:00Z")!
+    let volume = try await provider.minuteVolumeSumToday(for: ETF(code: "159915.XSHE", name: "创业板ETF易方达"), now: now)
+
+    #expect(volume == 700)
+}
+
+@Test func easyTDXThrowsForInvalidJSONAndNonZeroExit() async throws {
+    let invalid = try makeExecutableScript(body: """
+#!/bin/sh
+printf 'not-json'
+""")
+    let failing = try makeExecutableScript(body: """
+#!/bin/sh
+echo 'tdx failed' >&2
+exit 7
+""")
+    let etf = ETF(code: "510300.XSHG", name: "沪深300ETF华泰柏瑞")
+
+    await #expect(throws: Error.self) {
+        _ = try await EasyTDXProvider(binaryPath: invalid.path).quote(for: etf)
+    }
+    await #expect(throws: Error.self) {
+        _ = try await EasyTDXProvider(binaryPath: failing.path).quote(for: etf)
+    }
+}
+
+@Test func fallbackMarketDataProviderUsesEasyTDXAfterEarlierProvidersFail() async throws {
+    let script = try makeEasyTDXScript()
+    let fallback = FallbackMarketDataProvider(providers: [
+        AlwaysFailingProvider(),
+        EasyTDXProvider(binaryPath: script.path)
+    ])
+    let etf = ETF(code: "510300.XSHG", name: "沪深300ETF华泰柏瑞")
+
+    let quote = try await fallback.quote(for: etf)
+    let lines = try await fallback.dailyKLines(for: etf, limit: 3)
+
+    #expect(quote.lastPrice == 4.905)
+    #expect(lines.count == 3)
+}
+
 @Test func appStoreRefreshTimesOutInsteadOfHanging() async {
     let directory = URL(fileURLWithPath: NSTemporaryDirectory())
         .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)
@@ -393,6 +480,41 @@ private final class OptionalDataFailingProvider: FixtureProvider, @unchecked Sen
     }
 }
 
+private final class TodayKLineProvider: MarketDataProvider, @unchecked Sendable {
+    func quote(for etf: ETF) async throws -> Quote {
+        Quote(code: etf.code, name: etf.name, lastPrice: 13, pctChange: 0)
+    }
+
+    func dailyKLines(for etf: ETF, limit: Int) async throws -> [KLine] {
+        let calendar = Calendar(identifier: .gregorian)
+        let start = calendar.date(byAdding: .day, value: -29, to: calendar.startOfDay(for: fixtureNow)) ?? fixtureNow
+        return (0..<30).map { index in
+            let date = calendar.date(byAdding: .day, value: index, to: start) ?? start
+            let close: Double
+            switch index {
+            case 26: close = 10
+            case 27: close = 11
+            case 28: close = 12
+            case 29: close = 99
+            default: close = Double(index + 1)
+            }
+            return KLine(date: date, open: close, close: close, high: close, low: close, volume: 1_000)
+        }
+    }
+
+    func minuteVolumeSumToday(for etf: ETF, now: Date) async throws -> Double? {
+        nil
+    }
+
+    func premiumInfo(for etf: ETF, previousTradingDate: Date) async throws -> PremiumInfo {
+        PremiumInfo(premium: nil, price: nil, netValue: nil)
+    }
+
+    func previousTradingDate(beforeOrOn date: Date) async -> Date {
+        date
+    }
+}
+
 private final class AlwaysFailingProvider: MarketDataProvider, @unchecked Sendable {
     func quote(for etf: ETF) async throws -> Quote {
         throw MarketDataError.missingData
@@ -476,4 +598,37 @@ private final class DisabledQuoteProvider: MarketDataProvider, @unchecked Sendab
     func previousTradingDate(beforeOrOn date: Date) async -> Date {
         date
     }
+}
+
+private func makeEasyTDXScript() throws -> URL {
+    try makeExecutableScript(body: """
+#!/bin/sh
+if [ "$1" = "quote" ]; then
+  printf '[{"name":"沪深300ETF华泰柏瑞","pre_close":4.85,"close":4.905,"vol":12345,"speed_pct":9.9}]'
+  exit 0
+fi
+
+if [ "$1" = "kline" ] && [ "$5" = "DAILY" ]; then
+  printf '[{"datetime":"2026-06-03T15:00:00.000","open":4.8,"high":4.95,"low":4.75,"close":4.9,"vol":100,"amount":1000},{"datetime":"2026-06-04T15:00:00.000","open":4.9,"high":5.0,"low":4.88,"close":4.95,"vol":200,"amount":2000},{"datetime":"2026-06-05T15:00:00.000","open":4.95,"high":4.98,"low":4.88,"close":4.905,"vol":300,"amount":3000}]'
+  exit 0
+fi
+
+if [ "$1" = "kline" ] && [ "$5" = "1MIN" ]; then
+  printf '[{"datetime":"2026-06-04T14:59:00.000","open":4.8,"high":4.8,"low":4.8,"close":4.8,"vol":999,"amount":999},{"datetime":"2026-06-05T09:31:00.000","open":4.9,"high":4.9,"low":4.9,"close":4.9,"vol":300,"amount":3000},{"datetime":"2026-06-05T13:59:00.000","open":4.91,"high":4.91,"low":4.91,"close":4.91,"vol":400,"amount":4000},{"datetime":"2026-06-05T14:30:00.000","open":4.92,"high":4.92,"low":4.92,"close":4.92,"vol":500,"amount":5000}]'
+  exit 0
+fi
+
+echo "unexpected args: $*" >&2
+exit 2
+""")
+}
+
+private func makeExecutableScript(body: String) throws -> URL {
+    let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent("ETFMomentumEasyTDXTests-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let url = directory.appendingPathComponent("easy-tdx")
+    try body.write(to: url, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
+    return url
 }

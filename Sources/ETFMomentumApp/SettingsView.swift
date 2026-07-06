@@ -13,6 +13,9 @@ struct SettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 sourceSection
+                settingsSection("行情数据源") {
+                    toggleRow("启用通达信行情源兜底", isOn: $store.config.enableEasyTDXProvider)
+                }
                 settingsSection("排名参数") {
                     stepperRow("动量窗口 lookback_days", value: $store.config.lookbackDays, in: 5...120)
                     stepperRow("持仓数量 holdings_num", value: $store.config.holdingsNum, in: 1...10)

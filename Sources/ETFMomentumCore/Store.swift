@@ -111,13 +111,14 @@ public final class AppStore: ObservableObject {
         )
     }
 
-    public func refresh(provider: any MarketDataProvider = FallbackMarketDataProvider(), timeoutSeconds: UInt64 = 90) async -> Bool {
+    public func refresh(provider: (any MarketDataProvider)? = nil, timeoutSeconds: UInt64 = 90) async -> Bool {
         isRefreshing = true
         refreshMessage = "正在更新动量排行..."
         defer { isRefreshing = false }
 
         let config = config
         let etfs = etfs
+        let provider = provider ?? FallbackMarketDataProvider(enableEasyTDX: config.enableEasyTDXProvider)
         let next = await withCheckedContinuation { continuation in
             let box = RefreshResultBox(continuation)
             let rankingTask = Task.detached(priority: .userInitiated) {

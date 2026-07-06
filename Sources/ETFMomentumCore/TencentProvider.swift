@@ -1,35 +1,75 @@
 import Foundation
 
 public final class FallbackMarketDataProvider: MarketDataProvider {
-    private let primary: any MarketDataProvider
-    private let fallback: any MarketDataProvider
+    private let providers: [any MarketDataProvider]
 
-    public init(primary: any MarketDataProvider = TencentProvider(), fallback: any MarketDataProvider = EastmoneyProvider()) {
-        self.primary = AKShareProvider.isEnabledByEnvironment ? AKShareProvider() : primary
-        self.fallback = fallback
+    public init(
+        primary: any MarketDataProvider = TencentProvider(),
+        fallback: any MarketDataProvider = EastmoneyProvider(),
+        enableEasyTDX: Bool = false,
+        easyTDX: (any MarketDataProvider)? = nil
+    ) {
+        var providers: [any MarketDataProvider] = []
+        providers.append(AKShareProvider.isEnabledByEnvironment ? AKShareProvider() : primary)
+        providers.append(fallback)
+        if let easyTDX {
+            providers.append(easyTDX)
+        } else if enableEasyTDX, EasyTDXProvider.isAvailable {
+            providers.append(EasyTDXProvider())
+        }
+        self.providers = providers
+    }
+
+    init(providers: [any MarketDataProvider]) {
+        self.providers = providers
     }
 
     public func quote(for etf: ETF) async throws -> Quote {
-        do { return try await primary.quote(for: etf) } catch { return try await fallback.quote(for: etf) }
+        var lastError: Error?
+        for provider in providers {
+            do { return try await provider.quote(for: etf) } catch { lastError = error }
+        }
+        throw lastError ?? MarketDataError.missingData
     }
 
     public func dailyKLines(for etf: ETF, limit: Int) async throws -> [KLine] {
-        do { return try await primary.dailyKLines(for: etf, limit: limit) } catch { return try await fallback.dailyKLines(for: etf, limit: limit) }
+        var lastError: Error?
+        for provider in providers {
+            do {
+                let lines = try await provider.dailyKLines(for: etf, limit: limit)
+                if !lines.isEmpty { return lines }
+                lastError = MarketDataError.missingData
+            } catch {
+                lastError = error
+            }
+        }
+        throw lastError ?? MarketDataError.missingData
     }
 
     public func minuteVolumeSumToday(for etf: ETF, now: Date) async throws -> Double? {
-        do {
-            if let value = try await primary.minuteVolumeSumToday(for: etf, now: now) { return value }
-        } catch {}
-        return try await fallback.minuteVolumeSumToday(for: etf, now: now)
+        var lastError: Error?
+        for provider in providers {
+            do {
+                if let value = try await provider.minuteVolumeSumToday(for: etf, now: now) { return value }
+            } catch {
+                lastError = error
+            }
+        }
+        if let lastError { throw lastError }
+        return nil
     }
 
     public func premiumInfo(for etf: ETF, previousTradingDate: Date) async throws -> PremiumInfo {
-        do { return try await primary.premiumInfo(for: etf, previousTradingDate: previousTradingDate) } catch { return try await fallback.premiumInfo(for: etf, previousTradingDate: previousTradingDate) }
+        var lastError: Error?
+        for provider in providers {
+            do { return try await provider.premiumInfo(for: etf, previousTradingDate: previousTradingDate) } catch { lastError = error }
+        }
+        throw lastError ?? MarketDataError.missingData
     }
 
     public func previousTradingDate(beforeOrOn date: Date) async -> Date {
-        await primary.previousTradingDate(beforeOrOn: date)
+        guard let provider = providers.first else { return date }
+        return await provider.previousTradingDate(beforeOrOn: date)
     }
 }
 
