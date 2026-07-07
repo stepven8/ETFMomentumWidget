@@ -51,3 +51,36 @@ import Testing
     #expect(try store.summaries().isEmpty)
     #expect(try store.bars(symbol: "510300.XSHG", period: "1MIN", start: start.addingTimeInterval(-1), end: start.addingTimeInterval(1)).count == 1)
 }
+
+@Test func backtestHistoricalProviderFallsBackToDailyBarWhenMinuteDataIsMissing() async throws {
+    let directory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("ETFMomentumBacktestTests-\(UUID().uuidString)", isDirectory: true)
+    let store = try BacktestSQLiteStore(directory: directory)
+    let dataProvider = EasyTDXBacktestDataProvider(store: store)
+    let etf = ETF(code: "159919.XSHE", name: "沪深300ETF")
+    let calendar = shanghaiCalendar()
+    let januaryDay = try #require(calendar.date(from: DateComponents(year: 2026, month: 1, day: 5, hour: 14)))
+    let januaryDaily = try #require(calendar.date(from: DateComponents(year: 2026, month: 1, day: 5)))
+    let februaryMinute = try #require(calendar.date(from: DateComponents(year: 2026, month: 2, day: 4, hour: 9, minute: 32)))
+
+    try store.saveBars([
+        KLine(date: januaryDaily, open: 4.9, close: 5.1, high: 5.2, low: 4.8, volume: 1_000),
+        KLine(date: februaryMinute, open: 5.2, close: 5.3, high: 5.3, low: 5.2, volume: 2_000)
+    ], symbol: etf.code, period: "DAILY")
+    try store.saveBars([
+        KLine(date: februaryMinute, open: 5.2, close: 5.3, high: 5.3, low: 5.2, volume: 2_000)
+    ], symbol: etf.code, period: "1MIN")
+
+    let historical = BacktestHistoricalProvider(dataProvider: dataProvider, currentDate: januaryDay, period: .oneMinute)
+    let quote = try await historical.quote(for: etf)
+    let latest = try await dataProvider.latestBar(etf: etf, atOrBefore: januaryDay, period: .oneMinute)
+
+    #expect(quote.lastPrice == 5.1)
+    #expect(latest?.close == 5.1)
+}
+
+private func shanghaiCalendar() -> Calendar {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "Asia/Shanghai") ?? .current
+    return calendar
+}

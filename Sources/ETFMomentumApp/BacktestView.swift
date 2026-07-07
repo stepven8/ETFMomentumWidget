@@ -488,7 +488,7 @@ struct BacktestDetailView: View {
                 BacktestTradesTable(trades: result.trades)
             }
             BacktestTablePanel(title: "持仓快照") {
-                BacktestPositionsTable(positions: Array(result.positions.suffix(80)))
+                BacktestPositionsTable(positions: result.positions)
             }
             BacktestTablePanel(title: "排名信号") {
                 VStack(alignment: .leading, spacing: 10) {
@@ -680,7 +680,7 @@ struct BacktestTradesTable: View {
     var body: some View {
         Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 7) {
             header(["时间", "标的", "方向", "价格", "数量", "佣金", "收益金额", "原因"])
-            ForEach(displayRows.suffix(100)) { row in
+            ForEach(displayRows) { row in
                 GridRow {
                     cell(row.trade.date.formatted(date: .numeric, time: .shortened))
                     securityCell(name: row.trade.name, code: row.trade.code)

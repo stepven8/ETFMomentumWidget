@@ -61,7 +61,10 @@ public actor EasyTDXBacktestDataProvider {
 
     public func latestBar(etf: ETF, atOrBefore date: Date, period: BacktestPeriod) throws -> KLine? {
         let start = calendar.date(byAdding: .day, value: -7, to: date) ?? date
-        return try store.bars(symbol: etf.code, period: period.rawValue, start: start, end: date).last
+        if let minuteBar = try store.bars(symbol: etf.code, period: period.rawValue, start: start, end: date).last {
+            return minuteBar
+        }
+        return try latestDailyBar(etf: etf, atOrBefore: date)
     }
 
     public func minuteVolume(etf: ETF, on day: Date, through date: Date, period: BacktestPeriod) throws -> Double? {
@@ -73,6 +76,12 @@ public actor EasyTDXBacktestDataProvider {
     public func tradingDays(config: BacktestConfig) throws -> [Date] {
         let bars = try store.bars(symbol: config.benchmark.code, period: "DAILY", start: config.startDate, end: config.endDate)
         return bars.map { calendar.startOfDay(for: $0.date) }
+    }
+
+    private func latestDailyBar(etf: ETF, atOrBefore date: Date) throws -> KLine? {
+        let start = calendar.date(byAdding: .day, value: -14, to: date) ?? date
+        let end = endOfDay(date)
+        return try store.bars(symbol: etf.code, period: "DAILY", start: start, end: end).last
     }
 
     private func fetchAndStore(etf: ETF, period: String, count: Int, start: Date, end: Date, adjust: String?, barTime: String?) async throws -> CacheFillStatus {
