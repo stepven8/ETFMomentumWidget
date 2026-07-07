@@ -525,9 +525,20 @@ struct BacktestDetailView: View {
             card("基准", result.metrics.benchmarkReturn, .percent)
             card("超额", result.metrics.excessReturn, .percent)
             card("最大回撤", result.metrics.maxDrawdown, .percent)
+            card("Alpha", result.metrics.alpha, .number)
+            card("Beta", result.metrics.beta, .number)
             card("夏普", result.metrics.sharpe, .number)
+            card("索提诺", result.metrics.sortino, .number)
+            card("信息比率", result.metrics.informationRatio, .number)
             card("波动率", result.metrics.volatility, .percent)
+            card("胜率", result.metrics.winRate, .percent)
+            card("日胜率", result.metrics.dailyWinRate, .percent)
+            card("盈亏比", result.metrics.profitLossRatio, .number)
+            card("盈利次数", Double(result.metrics.profitableTradeCount), .integer)
+            card("亏损次数", Double(result.metrics.losingTradeCount), .integer)
             card("交易次数", Double(result.metrics.tradeCount), .integer)
+            card("换手率", result.metrics.turnover, .percent)
+            card("平均持仓", result.metrics.averageHoldingDays, .days)
         }
     }
 
@@ -598,6 +609,7 @@ private enum MetricStyle {
     case percent
     case number
     case integer
+    case days
 }
 
 private func format(_ value: Double, style: MetricStyle) -> String {
@@ -608,6 +620,8 @@ private func format(_ value: Double, style: MetricStyle) -> String {
         return value.formatted(.number.precision(.fractionLength(2)))
     case .integer:
         return Int(value).formatted()
+    case .days:
+        return "\(value.formatted(.number.precision(.fractionLength(2)))) 天"
     }
 }
 
@@ -927,15 +941,39 @@ struct EquityCurveChart: View {
     }
 
     private func drawTradeMarkers(context: GraphicsContext, rect: CGRect, min minValue: Double, max maxValue: Double) {
-        for trade in trades {
+        var markerCounts: [String: Int] = [:]
+        for trade in trades.sorted(by: { $0.date < $1.date }) {
             guard let index = nearestPointIndex(to: trade.date) else { continue }
-            let x = rect.minX + CGFloat(index) / CGFloat(Swift.max(points.count - 1, 1)) * rect.width
-            let y = y(for: points[index].strategyReturn, rect: rect, min: minValue, max: maxValue)
+            let key = "\(index)-\(trade.side)"
+            let ordinal = markerCounts[key, default: 0]
+            markerCounts[key] = ordinal + 1
+            let xOffset = CGFloat((ordinal % 5) - 2) * 6
+            let baseX = rect.minX + CGFloat(index) / CGFloat(Swift.max(points.count - 1, 1)) * rect.width
+            let x = min(max(baseX + xOffset, rect.minX + 5), rect.maxX - 5)
+            let baseY = y(for: points[index].strategyReturn, rect: rect, min: minValue, max: maxValue)
+            let yOffset = trade.side == "买入" ? CGFloat(12 + (ordinal / 5) * 8) : -CGFloat(12 + (ordinal / 5) * 8)
+            let y = min(max(baseY + yOffset, rect.minY + 6), rect.maxY - 6)
             let color: Color = trade.side == "买入" ? .upRed : .downGreen
-            context.fill(Path(ellipseIn: CGRect(x: x - 4, y: y - 4, width: 8, height: 8)), with: .color(color))
-            context.stroke(Path(ellipseIn: CGRect(x: x - 4, y: y - 4, width: 8, height: 8)), with: .color(Color.panelBackground), lineWidth: 1.2)
-            context.draw(Text(trade.side == "买入" ? "买" : "卖").font(.system(size: 9, weight: .bold)).foregroundStyle(color), at: CGPoint(x: x, y: y - 9), anchor: .bottom)
+            let marker = trianglePath(center: CGPoint(x: x, y: y), pointsUp: trade.side == "买入", size: 9)
+            context.fill(marker, with: .color(color))
+            context.stroke(marker, with: .color(Color.panelBackground.opacity(0.9)), lineWidth: 1.1)
         }
+    }
+
+    private func trianglePath(center: CGPoint, pointsUp: Bool, size: CGFloat) -> Path {
+        let half = size / 2
+        var path = Path()
+        if pointsUp {
+            path.move(to: CGPoint(x: center.x, y: center.y - half))
+            path.addLine(to: CGPoint(x: center.x - half, y: center.y + half))
+            path.addLine(to: CGPoint(x: center.x + half, y: center.y + half))
+        } else {
+            path.move(to: CGPoint(x: center.x, y: center.y + half))
+            path.addLine(to: CGPoint(x: center.x - half, y: center.y - half))
+            path.addLine(to: CGPoint(x: center.x + half, y: center.y - half))
+        }
+        path.closeSubpath()
+        return path
     }
 
     private func nearestPointIndex(to date: Date) -> Int? {

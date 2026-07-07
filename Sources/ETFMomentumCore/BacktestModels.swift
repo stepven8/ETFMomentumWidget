@@ -140,11 +140,41 @@ public struct BacktestMetrics: Codable, Equatable, Sendable {
     public var sharpe: Double
     public var volatility: Double
     public var winRate: Double
+    public var dailyWinRate: Double
+    public var profitLossRatio: Double
+    public var alpha: Double
+    public var beta: Double
+    public var informationRatio: Double
+    public var sortino: Double
+    public var profitableTradeCount: Int
+    public var losingTradeCount: Int
     public var tradeCount: Int
     public var turnover: Double
     public var averageHoldingDays: Double
 
-    public init(totalReturn: Double = 0, annualizedReturn: Double = 0, benchmarkReturn: Double = 0, excessReturn: Double = 0, maxDrawdown: Double = 0, sharpe: Double = 0, volatility: Double = 0, winRate: Double = 0, tradeCount: Int = 0, turnover: Double = 0, averageHoldingDays: Double = 0) {
+    enum CodingKeys: String, CodingKey {
+        case totalReturn
+        case annualizedReturn
+        case benchmarkReturn
+        case excessReturn
+        case maxDrawdown
+        case sharpe
+        case volatility
+        case winRate
+        case dailyWinRate
+        case profitLossRatio
+        case alpha
+        case beta
+        case informationRatio
+        case sortino
+        case profitableTradeCount
+        case losingTradeCount
+        case tradeCount
+        case turnover
+        case averageHoldingDays
+    }
+
+    public init(totalReturn: Double = 0, annualizedReturn: Double = 0, benchmarkReturn: Double = 0, excessReturn: Double = 0, maxDrawdown: Double = 0, sharpe: Double = 0, volatility: Double = 0, winRate: Double = 0, dailyWinRate: Double = 0, profitLossRatio: Double = 0, alpha: Double = 0, beta: Double = 0, informationRatio: Double = 0, sortino: Double = 0, profitableTradeCount: Int = 0, losingTradeCount: Int = 0, tradeCount: Int = 0, turnover: Double = 0, averageHoldingDays: Double = 0) {
         self.totalReturn = totalReturn
         self.annualizedReturn = annualizedReturn
         self.benchmarkReturn = benchmarkReturn
@@ -153,9 +183,40 @@ public struct BacktestMetrics: Codable, Equatable, Sendable {
         self.sharpe = sharpe
         self.volatility = volatility
         self.winRate = winRate
+        self.dailyWinRate = dailyWinRate
+        self.profitLossRatio = profitLossRatio
+        self.alpha = alpha
+        self.beta = beta
+        self.informationRatio = informationRatio
+        self.sortino = sortino
+        self.profitableTradeCount = profitableTradeCount
+        self.losingTradeCount = losingTradeCount
         self.tradeCount = tradeCount
         self.turnover = turnover
         self.averageHoldingDays = averageHoldingDays
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.totalReturn = try container.decodeIfPresent(Double.self, forKey: .totalReturn) ?? 0
+        self.annualizedReturn = try container.decodeIfPresent(Double.self, forKey: .annualizedReturn) ?? 0
+        self.benchmarkReturn = try container.decodeIfPresent(Double.self, forKey: .benchmarkReturn) ?? 0
+        self.excessReturn = try container.decodeIfPresent(Double.self, forKey: .excessReturn) ?? 0
+        self.maxDrawdown = try container.decodeIfPresent(Double.self, forKey: .maxDrawdown) ?? 0
+        self.sharpe = try container.decodeIfPresent(Double.self, forKey: .sharpe) ?? 0
+        self.volatility = try container.decodeIfPresent(Double.self, forKey: .volatility) ?? 0
+        self.winRate = try container.decodeIfPresent(Double.self, forKey: .winRate) ?? 0
+        self.dailyWinRate = try container.decodeIfPresent(Double.self, forKey: .dailyWinRate) ?? 0
+        self.profitLossRatio = try container.decodeIfPresent(Double.self, forKey: .profitLossRatio) ?? 0
+        self.alpha = try container.decodeIfPresent(Double.self, forKey: .alpha) ?? 0
+        self.beta = try container.decodeIfPresent(Double.self, forKey: .beta) ?? 0
+        self.informationRatio = try container.decodeIfPresent(Double.self, forKey: .informationRatio) ?? 0
+        self.sortino = try container.decodeIfPresent(Double.self, forKey: .sortino) ?? 0
+        self.profitableTradeCount = try container.decodeIfPresent(Int.self, forKey: .profitableTradeCount) ?? 0
+        self.losingTradeCount = try container.decodeIfPresent(Int.self, forKey: .losingTradeCount) ?? 0
+        self.tradeCount = try container.decodeIfPresent(Int.self, forKey: .tradeCount) ?? 0
+        self.turnover = try container.decodeIfPresent(Double.self, forKey: .turnover) ?? 0
+        self.averageHoldingDays = try container.decodeIfPresent(Double.self, forKey: .averageHoldingDays) ?? 0
     }
 }
 

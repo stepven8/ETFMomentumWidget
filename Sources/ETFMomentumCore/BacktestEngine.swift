@@ -293,12 +293,32 @@ public actor BacktestEngine {
         let returns = zip(equity.dropFirst(), equity).map { current, previous in
             previous.totalValue != 0 ? current.totalValue / previous.totalValue - 1 : 0
         }
+        let benchmarkReturns = zip(equity.dropFirst(), equity).map { current, previous in
+            (1 + previous.benchmarkReturn) != 0 ? (1 + current.benchmarkReturn) / (1 + previous.benchmarkReturn) - 1 : 0
+        }
         let avg = returns.isEmpty ? 0 : returns.reduce(0, +) / Double(returns.count)
         let variance = returns.isEmpty ? 0 : returns.map { pow($0 - avg, 2) }.reduce(0, +) / Double(returns.count)
         let volatility = sqrt(variance) * sqrt(250)
         let sharpe = volatility != 0 ? annualized / volatility : 0
-        let sells = trades.filter { $0.side == "卖出" }
-        let wins = sells.filter { $0.price > 0 }.count
+        let downside = returns.filter { $0 < 0 }
+        let downsideDeviation = downside.isEmpty ? 0 : sqrt(downside.map { pow($0, 2) }.reduce(0, +) / Double(downside.count)) * sqrt(250)
+        let sortino = downsideDeviation != 0 ? annualized / downsideDeviation : 0
+        let dailyWinRate = returns.isEmpty ? 0 : Double(returns.filter { $0 > 0 }.count) / Double(returns.count)
+        let beta = covariance(returns, benchmarkReturns) / max(varianceOf(benchmarkReturns), 1e-12)
+        let benchmarkAnnualized = pow(1 + last.benchmarkReturn, 365.0 / Double(days)) - 1
+        let alpha = annualized - beta * benchmarkAnnualized
+        let excessReturns = zip(returns, benchmarkReturns).map { $0 - $1 }
+        let excessAverage = excessReturns.isEmpty ? 0 : excessReturns.reduce(0, +) / Double(excessReturns.count)
+        let trackingError = sqrt(varianceOf(excessReturns)) * sqrt(250)
+        let informationRatio = trackingError != 0 ? excessAverage * 250 / trackingError : 0
+        let tradeProfits = realizedTradeProfits(trades)
+        let profitableTradeCount = tradeProfits.filter { $0 > 0 }.count
+        let losingTradeCount = tradeProfits.filter { $0 < 0 }.count
+        let totalProfit = tradeProfits.filter { $0 > 0 }.reduce(0, +)
+        let totalLoss = abs(tradeProfits.filter { $0 < 0 }.reduce(0, +))
+        let profitLossRatio = totalLoss > 0 ? totalProfit / totalLoss : (totalProfit > 0 ? totalProfit : 0)
+        let completedHoldDays = completedHoldingDays(trades)
+        let averageHoldingDays = completedHoldDays.isEmpty ? 0 : completedHoldDays.reduce(0, +) / Double(completedHoldDays.count)
         let turnover = trades.map { abs(Double($0.filledAmount) * $0.price) }.reduce(0, +) / max(config.initialCapital, 1)
         return BacktestMetrics(
             totalReturn: totalReturn,
@@ -308,11 +328,70 @@ public actor BacktestEngine {
             maxDrawdown: equity.map(\.drawdown).min() ?? 0,
             sharpe: sharpe,
             volatility: volatility,
-            winRate: sells.isEmpty ? 0 : Double(wins) / Double(sells.count),
+            winRate: tradeProfits.isEmpty ? 0 : Double(profitableTradeCount) / Double(tradeProfits.count),
+            dailyWinRate: dailyWinRate,
+            profitLossRatio: profitLossRatio,
+            alpha: alpha,
+            beta: beta,
+            informationRatio: informationRatio,
+            sortino: sortino,
+            profitableTradeCount: profitableTradeCount,
+            losingTradeCount: losingTradeCount,
             tradeCount: trades.count,
             turnover: turnover,
-            averageHoldingDays: 0
+            averageHoldingDays: averageHoldingDays
         )
+    }
+
+    private func varianceOf(_ values: [Double]) -> Double {
+        guard !values.isEmpty else { return 0 }
+        let average = values.reduce(0, +) / Double(values.count)
+        return values.map { pow($0 - average, 2) }.reduce(0, +) / Double(values.count)
+    }
+
+    private func covariance(_ lhs: [Double], _ rhs: [Double]) -> Double {
+        let count = min(lhs.count, rhs.count)
+        guard count > 0 else { return 0 }
+        let left = Array(lhs.prefix(count))
+        let right = Array(rhs.prefix(count))
+        let leftAverage = left.reduce(0, +) / Double(count)
+        let rightAverage = right.reduce(0, +) / Double(count)
+        return zip(left, right).map { ($0 - leftAverage) * ($1 - rightAverage) }.reduce(0, +) / Double(count)
+    }
+
+    private func realizedTradeProfits(_ trades: [BacktestTrade]) -> [Double] {
+        var positions: [String: (amount: Int, cost: Double)] = [:]
+        var profits: [Double] = []
+        for trade in trades.sorted(by: { $0.date < $1.date }) {
+            if trade.side == "买入" {
+                let old = positions[trade.code] ?? (0, 0)
+                let newAmount = old.amount + trade.filledAmount
+                let oldValue = Double(old.amount) * old.cost
+                let newValue = Double(trade.filledAmount) * trade.price + trade.commission
+                positions[trade.code] = (newAmount, newAmount > 0 ? (oldValue + newValue) / Double(newAmount) : trade.price)
+            } else {
+                let old = positions[trade.code] ?? (trade.filledAmount, trade.price)
+                profits.append((trade.price - old.cost) * Double(trade.filledAmount) - trade.commission)
+                let remaining = max(old.amount - trade.filledAmount, 0)
+                positions[trade.code] = remaining > 0 ? (remaining, old.cost) : nil
+            }
+        }
+        return profits
+    }
+
+    private func completedHoldingDays(_ trades: [BacktestTrade]) -> [Double] {
+        var openDates: [String: Date] = [:]
+        var days: [Double] = []
+        for trade in trades.sorted(by: { $0.date < $1.date }) {
+            if trade.side == "买入" {
+                openDates[trade.code] = openDates[trade.code] ?? trade.date
+            } else if let openedAt = openDates[trade.code] {
+                let dayCount = max(calendar.dateComponents([.day], from: openedAt, to: trade.date).day ?? 0, 0)
+                days.append(Double(dayCount) + 1)
+                openDates.removeValue(forKey: trade.code)
+            }
+        }
+        return days
     }
 
     private func time(on day: Date, hour: Int, minute: Int) -> Date {
