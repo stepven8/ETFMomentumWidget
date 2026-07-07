@@ -154,6 +154,21 @@ exit 7
     }
 }
 
+@Test func easyTDXCreatesConfigurationDirectoryBeforeRunningCLI() async throws {
+    let script = try makeExecutableScript(body: """
+#!/bin/sh
+if [ ! -d "$HOME/.easy_tdx" ]; then
+  echo "missing easy_tdx config directory" >&2
+  exit 9
+fi
+printf '[{"name":"沪深300ETF华泰柏瑞","pre_close":4.85,"close":4.905,"vol":12345}]'
+""")
+    let etf = ETF(code: "510300.XSHG", name: "沪深300ETF华泰柏瑞")
+    let quote = try await EasyTDXProvider(binaryPath: script.path).quote(for: etf)
+
+    #expect(quote.lastPrice == 4.905)
+}
+
 @Test func fallbackMarketDataProviderUsesEasyTDXAfterEarlierProvidersFail() async throws {
     let script = try makeEasyTDXScript()
     let fallback = FallbackMarketDataProvider(providers: [
@@ -231,6 +246,29 @@ exit 7
     #expect(cached?.included.first?.score == 8)
 }
 
+@Test func refreshFailureMessageIncludesETFAndDiagnosticReason() async throws {
+    let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)
+    let store = await AppStore(directory: directory)
+    let oldSnapshot = RankingSnapshot(generatedAt: fixtureNow, metrics: [
+        RankingMetric(etf: FixtureProvider.etfs[0], score: 8, currentPrice: 2.2, pctChange: 1.1, filterReason: .included)
+    ])
+
+    try await MainActor.run {
+        store.etfs = [FixtureProvider.etfs[0]]
+        try store.saveSnapshot(oldSnapshot)
+    }
+
+    let succeeded = await store.refresh(provider: NamedFailingProvider(), timeoutSeconds: 1)
+    let message = await store.refreshMessage ?? ""
+
+    #expect(succeeded == false)
+    #expect(message.contains("沪深300ETF华泰柏瑞 510300.XSHG"))
+    #expect(message.contains("计算异常"))
+    #expect(message.contains("行情接口返回空数据"))
+    #expect(message.contains("已保留原有数据"))
+}
+
 @Test func incompleteDailyDataRefreshDoesNotOverwriteExistingSnapshot() async throws {
     let directory = URL(fileURLWithPath: NSTemporaryDirectory())
         .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)
@@ -249,6 +287,25 @@ exit 7
     #expect(succeeded == false)
     #expect(await store.snapshot?.generatedAt == oldSnapshot.generatedAt)
     #expect(await store.snapshot?.included.first?.score == 7)
+}
+
+@Test func disabledETFQuoteFailureDoesNotBlockRefreshCommit() async throws {
+    let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent("ETFMomentumWidgetTests-\(UUID().uuidString)", isDirectory: true)
+    let store = await AppStore(directory: directory)
+    let enabled = FixtureProvider.etfs[0]
+    let disabled = ETF(code: "513880.XSHG", name: "日经225ETF华安", enabled: false)
+
+    await MainActor.run {
+        store.etfs = [enabled, disabled]
+    }
+
+    let succeeded = await store.refresh(provider: DisabledQuoteFailingProvider(), timeoutSeconds: 1)
+    let disabledMetric = await store.snapshot?.metrics.first { $0.etf.code == disabled.code }
+
+    #expect(succeeded == true)
+    #expect(disabledMetric?.filterReason == .disabled)
+    #expect(disabledMetric?.currentPrice == 0)
 }
 
 @Test func savingSettingsRefreshFailureKeepsExistingSnapshotUntilSuccessfulRefresh() async throws {
@@ -480,6 +537,39 @@ private final class OptionalDataFailingProvider: FixtureProvider, @unchecked Sen
     }
 }
 
+private enum NamedProviderError: Error, LocalizedError {
+    case emptyMarketData
+
+    var errorDescription: String? {
+        switch self {
+        case .emptyMarketData:
+            return "行情接口返回空数据"
+        }
+    }
+}
+
+private final class NamedFailingProvider: MarketDataProvider, @unchecked Sendable {
+    func quote(for etf: ETF) async throws -> Quote {
+        throw NamedProviderError.emptyMarketData
+    }
+
+    func dailyKLines(for etf: ETF, limit: Int) async throws -> [KLine] {
+        throw NamedProviderError.emptyMarketData
+    }
+
+    func minuteVolumeSumToday(for etf: ETF, now: Date) async throws -> Double? {
+        nil
+    }
+
+    func premiumInfo(for etf: ETF, previousTradingDate: Date) async throws -> PremiumInfo {
+        PremiumInfo(premium: nil, price: nil, netValue: nil)
+    }
+
+    func previousTradingDate(beforeOrOn date: Date) async -> Date {
+        date
+    }
+}
+
 private final class TodayKLineProvider: MarketDataProvider, @unchecked Sendable {
     func quote(for etf: ETF) async throws -> Quote {
         Quote(code: etf.code, name: etf.name, lastPrice: 13, pctChange: 0)
@@ -597,6 +687,15 @@ private final class DisabledQuoteProvider: MarketDataProvider, @unchecked Sendab
 
     func previousTradingDate(beforeOrOn date: Date) async -> Date {
         date
+    }
+}
+
+private final class DisabledQuoteFailingProvider: FixtureProvider, @unchecked Sendable {
+    override func quote(for etf: ETF) async throws -> Quote {
+        if !etf.enabled {
+            throw MarketDataError.missingData
+        }
+        return try await super.quote(for: etf)
     }
 }
 

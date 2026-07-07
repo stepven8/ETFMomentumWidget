@@ -1,6 +1,8 @@
 import Foundation
 
 public final class EasyTDXProvider: MarketDataProvider {
+    private static let processSemaphore = DispatchSemaphore(value: 1)
+
     private let binaryPath: String?
     private let timeoutSeconds: TimeInterval
     private let calendar: Calendar
@@ -102,6 +104,9 @@ public final class EasyTDXProvider: MarketDataProvider {
         guard let command = binaryPath ?? Self.resolveBinaryPath() else {
             throw EasyTDXError.binaryNotFound
         }
+        try Self.ensureConfigurationDirectoryExists()
+        Self.processSemaphore.wait()
+        defer { Self.processSemaphore.signal() }
 
         let process = Process()
         if command.hasPrefix("/") {
@@ -147,6 +152,12 @@ public final class EasyTDXProvider: MarketDataProvider {
         }
         guard !data.isEmpty else { throw MarketDataError.missingData }
         return data
+    }
+
+    private static func ensureConfigurationDirectoryExists() throws {
+        let directory = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".easy_tdx", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     }
 
     private func parseKLine(_ item: EasyTDXKLine) -> KLine? {

@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var store: AppStore
+    var onRefreshCompleted: (Bool) -> Void = { _ in }
     @State private var saveMessage: String?
     @State private var pendingDelete: PendingETFDelete?
 
@@ -140,7 +141,8 @@ struct SettingsView: View {
                     let timeText = store.snapshot?.generatedAt.formatted(date: .omitted, time: .standard) ?? Date().formatted(date: .omitted, time: .standard)
                     saveMessage = success
                         ? "保存完成，排行已重新计算 \(timeText)"
-                        : "保存成功，但重新计算失败，已保留原有排行数据"
+                        : "保存成功，但\(store.refreshMessage ?? "重新计算失败，已保留原有排行数据")"
+                    onRefreshCompleted(success)
                 }
             } catch {
                 await MainActor.run {

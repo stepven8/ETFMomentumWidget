@@ -29,7 +29,9 @@ struct ContentView: View {
                     sidebar
                 } detail: {
                     if selectedTab == .settings {
-                        SettingsView()
+                        SettingsView { success in
+                            handleSettingsRefreshCompleted(success: success)
+                        }
                     } else {
                         detail
                     }
@@ -58,8 +60,12 @@ struct ContentView: View {
         .onChange(of: isDetailHidden) { _, hidden in
             resizeWindowForDetailVisibility(isHidden: hidden)
         }
+        .onChange(of: store.snapshot?.generatedAt) { _, _ in
+            syncSelectionToCurrentRanking()
+        }
         .onAppear {
             configureWindowForCurrentState()
+            syncSelectionToCurrentRanking()
         }
     }
 
@@ -117,9 +123,9 @@ struct ContentView: View {
     private var detail: some View {
         VStack(spacing: 0) {
             if let selectedETF {
-                ETFDetailView(etf: selectedETF)
+                ETFDetailView(etf: selectedETF, metric: metric(for: selectedETF))
             } else if let first = store.snapshot?.included.first?.etf {
-                ETFDetailView(etf: first)
+                ETFDetailView(etf: first, metric: metric(for: first))
             } else {
                 ContentUnavailableView("暂无入选 ETF", systemImage: "chart.line.uptrend.xyaxis", description: Text("点击手动更新获取当前动量排行。"))
             }
@@ -135,6 +141,10 @@ struct ContentView: View {
     private var expandedMinWidth: CGFloat { 1180 }
     private var minWindowHeight: CGFloat { 760 }
 
+    private func metric(for etf: ETF) -> RankingMetric? {
+        store.snapshot?.metrics.first { $0.etf.code == etf.code }
+    }
+
     private func refresh() {
         Task {
             let success = await store.refresh()
@@ -142,8 +152,34 @@ struct ContentView: View {
                 selectedTab = .ranking
                 if success, let generatedAt = store.snapshot?.generatedAt {
                     store.refreshMessage = "更新完成 \(generatedAt.formatted(date: .omitted, time: .standard))"
+                    syncSelectionToCurrentRanking(preferFirst: true)
                 }
             }
+        }
+    }
+
+    @MainActor
+    private func handleSettingsRefreshCompleted(success: Bool) {
+        guard success else { return }
+        selectedTab = .ranking
+        syncSelectionToCurrentRanking(preferFirst: true)
+    }
+
+    @MainActor
+    private func syncSelectionToCurrentRanking(preferFirst: Bool = false) {
+        let metrics = store.snapshot?.metrics ?? []
+        if !preferFirst,
+           let selectedETF,
+           let refreshed = metrics.first(where: { $0.etf.code == selectedETF.code })?.etf {
+            self.selectedETF = refreshed
+            return
+        }
+        if let first = store.snapshot?.included.first?.etf {
+            selectedETF = first
+        } else if let firstMetric = metrics.first?.etf {
+            selectedETF = firstMetric
+        } else {
+            selectedETF = nil
         }
     }
 

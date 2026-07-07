@@ -227,8 +227,9 @@ public struct RankingMetric: Codable, Identifiable, Sendable {
     public var volumeRatio: Double?
     public var premium: Double?
     public var closes: [Double]
+    public var diagnosticMessage: String?
 
-    public init(etf: ETF, annualizedReturns: Double = 0, rSquared: Double = 0, score: Double = 0, currentPrice: Double = 0, shortAnnualized: Double = 0, pctChange: Double = 0, filterReason: FilterReason, volumeRatio: Double? = nil, premium: Double? = nil, closes: [Double] = []) {
+    public init(etf: ETF, annualizedReturns: Double = 0, rSquared: Double = 0, score: Double = 0, currentPrice: Double = 0, shortAnnualized: Double = 0, pctChange: Double = 0, filterReason: FilterReason, volumeRatio: Double? = nil, premium: Double? = nil, closes: [Double] = [], diagnosticMessage: String? = nil) {
         self.etf = etf
         self.annualizedReturns = annualizedReturns
         self.rSquared = rSquared
@@ -240,6 +241,7 @@ public struct RankingMetric: Codable, Identifiable, Sendable {
         self.volumeRatio = volumeRatio
         self.premium = premium
         self.closes = closes
+        self.diagnosticMessage = diagnosticMessage
     }
 }
 

@@ -4,6 +4,16 @@ public enum RefreshError: Error {
     case timeout
 }
 
+public struct RefreshCommitValidation: Sendable {
+    public var canCommit: Bool
+    public var message: String?
+
+    public init(canCommit: Bool, message: String? = nil) {
+        self.canCommit = canCommit
+        self.message = message
+    }
+}
+
 private actor RefreshResultBox {
     private var didResume = false
     private let continuation: CheckedContinuation<RankingSnapshot?, Never>
@@ -136,8 +146,14 @@ public final class AppStore: ObservableObject {
             }
         }
 
-        guard let next, canCommit(snapshot: next, for: etfs) else {
-            refreshMessage = "更新失败或数据不完整，已保留原有数据"
+        guard let next else {
+            refreshMessage = "更新失败：刷新超过 \(timeoutSeconds) 秒仍未完成，已停止本次更新并保留原有数据。请检查网络或减少 ETF 数量后重试。"
+            return false
+        }
+
+        let validation = commitValidation(snapshot: next, for: etfs)
+        guard validation.canCommit else {
+            refreshMessage = validation.message ?? "更新失败：数据不完整，已保留原有数据。"
             return false
         }
         do {
@@ -145,34 +161,71 @@ public final class AppStore: ObservableObject {
             refreshMessage = "更新完成 \(next.generatedAt.formatted(date: .omitted, time: .standard))"
             return true
         } catch {
-            refreshMessage = "更新失败或数据不完整，已保留原有数据"
+            refreshMessage = "更新失败：无法保存排行数据，\(error.localizedDescription)。已保留原有数据。"
             return false
         }
     }
 
     private func canCommit(snapshot: RankingSnapshot, for etfs: [ETF]) -> Bool {
+        commitValidation(snapshot: snapshot, for: etfs).canCommit
+    }
+
+    public func commitValidation(snapshot: RankingSnapshot, for etfs: [ETF]) -> RefreshCommitValidation {
         let expectedCodes = Set(etfs.map(\.code))
         let metricsByCode = Dictionary(grouping: snapshot.metrics, by: { $0.etf.code })
 
-        guard !expectedCodes.isEmpty else { return true }
-        guard Set(metricsByCode.keys).isSuperset(of: expectedCodes) else { return false }
+        guard !expectedCodes.isEmpty else { return RefreshCommitValidation(canCommit: true) }
+        let missingCodes = expectedCodes.subtracting(Set(metricsByCode.keys))
+        if !missingCodes.isEmpty {
+            let text = missingCodes.sorted().prefix(5).joined(separator: "、")
+            return RefreshCommitValidation(
+                canCommit: false,
+                message: "更新失败：缺少 \(missingCodes.count) 只 ETF 的计算结果（\(text)），已保留原有数据。"
+            )
+        }
 
         for etf in etfs {
             guard let matches = metricsByCode[etf.code], matches.count == 1, let metric = matches.first else {
-                return false
+                return RefreshCommitValidation(
+                    canCommit: false,
+                    message: "更新失败：\(etf.name) \(etf.code) 的计算结果重复或缺失，已保留原有数据。"
+                )
             }
             if metric.filterReason == .calculationError || metric.filterReason == .pendingRefresh || metric.filterReason == .insufficientData {
-                return false
+                return RefreshCommitValidation(
+                    canCommit: false,
+                    message: refreshFailureMessage(for: metric)
+                )
             }
-            if metric.currentPrice <= 0 {
-                return false
+            if etf.enabled && metric.currentPrice <= 0 {
+                return RefreshCommitValidation(
+                    canCommit: false,
+                    message: "更新失败：\(displayName(for: metric)) 当前价格无效（\(metric.currentPrice.formatted(.number.precision(.fractionLength(3))))），已保留原有数据。"
+                )
             }
             if etf.enabled && metric.etf.enabled == false {
-                return false
+                return RefreshCommitValidation(
+                    canCommit: false,
+                    message: "更新失败：\(displayName(for: metric)) 本应启用但结果被标记为未启用，已保留原有数据。"
+                )
             }
         }
 
-        return true
+        return RefreshCommitValidation(canCommit: true)
+    }
+
+    private func refreshFailureMessage(for metric: RankingMetric) -> String {
+        var message = "更新失败：\(displayName(for: metric)) \(metric.filterReason.rawValue)"
+        if let diagnostic = metric.diagnosticMessage, !diagnostic.isEmpty {
+            message += "，原因：\(diagnostic)"
+        }
+        message += "。已保留原有数据。"
+        return message
+    }
+
+    private func displayName(for metric: RankingMetric) -> String {
+        let name = metric.etf.name.isEmpty ? "ETF" : metric.etf.name
+        return "\(name) \(metric.etf.code)"
     }
 
     nonisolated private static func load<T: Decodable>(_ type: T.Type, from url: URL) -> T? {

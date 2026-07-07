@@ -135,7 +135,7 @@ public struct RankingEngine: Sendable {
 
             return RankingMetric(etf: named(etf, quote: quote), annualizedReturns: scored.annRet, rSquared: scored.r2, score: scored.score, currentPrice: quote.lastPrice, shortAnnualized: shortAnnualized, pctChange: quote.pctChange, filterReason: .included, volumeRatio: ratioValue, premium: premiumValue, closes: priceSeries)
         } catch {
-            return RankingMetric(etf: etf, filterReason: .calculationError)
+            return RankingMetric(etf: etf, filterReason: .calculationError, diagnosticMessage: error.refreshDiagnosticText)
         }
     }
 
@@ -173,5 +173,18 @@ public struct RankingEngine: Sendable {
         guard let currentVol = try await provider.minuteVolumeSumToday(for: etf, now: now()) else { return nil }
         let ratio = avgVol > 0 ? currentVol / avgVol : 0
         return ratio > config.volumeThreshold ? ratio : nil
+    }
+}
+
+private extension Error {
+    var refreshDiagnosticText: String {
+        if let localized = self as? LocalizedError, let description = localized.errorDescription, !description.isEmpty {
+            return description
+        }
+        let description = String(describing: self)
+        if !description.isEmpty {
+            return description
+        }
+        return "未知错误"
     }
 }

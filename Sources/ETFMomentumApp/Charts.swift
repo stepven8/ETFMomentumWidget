@@ -3,13 +3,18 @@ import AppKit
 import SwiftUI
 
 struct ETFDetailView: View {
+    @EnvironmentObject private var store: AppStore
     let etf: ETF
+    var metric: RankingMetric?
     @State private var klines: [KLine] = []
     @State private var selectedIndex: Int?
     @State private var visibleStart = 0
     @State private var visibleCount = 260
     @State private var isLoading = false
-    private let klineLimit = 260
+
+    private var klineLimit: Int {
+        260
+    }
 
     private var selectedKLine: KLine? {
         guard let selectedIndex, klines.indices.contains(selectedIndex) else { return nil }
@@ -96,9 +101,17 @@ struct ETFDetailView: View {
         }
         .background(Color.appBackground)
         .preferredColorScheme(.dark)
-        .task(id: etf.code) {
+        .task(id: "\(etf.code)-\(metric?.currentPrice ?? 0)-\(metric?.closes.count ?? 0)") {
+            resetChart()
             await load()
         }
+    }
+
+    private func resetChart() {
+        klines = []
+        selectedIndex = nil
+        visibleStart = 0
+        visibleCount = klineLimit
     }
 
     private func load() async {
@@ -112,7 +125,7 @@ struct ETFDetailView: View {
             }
         }
         do {
-            let lines = try await FallbackMarketDataProvider().dailyKLines(for: etf, limit: klineLimit)
+            let lines = try await FallbackMarketDataProvider(enableEasyTDX: store.config.enableEasyTDXProvider).dailyKLines(for: etf, limit: klineLimit)
             guard !lines.isEmpty else { return }
             try? cache.save(lines, etf: etf, limit: klineLimit)
             await MainActor.run {
